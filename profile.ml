@@ -1,16 +1,29 @@
 open Group
 
+(* Limitations -- ** sanitize/escape all inputs before pushing to server **
+* Name - 64 char (full name) -- alphanumeric + spaces
+* set a reasonable image size limit (2mb?) and try to compress - upload as base 64 encoding
+* school - 64 char (alphanumeric + spaces)
+* groups - cannot join more than 100 groups -- g1;g2;g3;... for integer ids
+* description - 800 characters (alphanumeric + spaces + *basic* punctuation)
+* interests - 15 char limit per interest, 40 interests max (alphanumeric + spaces) -- i0;i1;i2;...;i39
+* experience - "BEG" or "INT" or "ADV"
+* role - 32 char (alphanumeric + spaces)
+* looking_for - "BEG" or "INT" or "ADV" for exp, 32 for role (alphanumeric + spaces) -- exp;role
+* Github URL - 60 char (URL encoded then decoded -- example: https://www.urlencoder.org)
+*)
+
 (* will store all information about each person including id, name, photo, description, etc.*)
-type profile = {id:int; name:string; photo:string; school;string; groups: group list;
-                desc: string; interests: string list; exp: [ `BEG | `INT | `ADV ];
-                role: string; look_for: ([ `BEG | `INT | `ADV ]*string);
-                github: string}
+type profile = {user_id:int; name:string; photo:string; school:string; group_list: group list;
+                description: string; interest_list: string list; experience : [ `BEG | `INT | `ADV ];
+                role: string; looking_for: ([ `BEG | `INT | `ADV ]*string);
+                github_url : string}
 
 (* will take in Json file and parse it and store that information in an object of type profile *)
 val init : Yojson.Basic.json -> profile
 
 (* will return the unique user id associated with a profile *)
-let id p = p.id
+let user_id p = p.user_id
 
 (* will return the name of a user *)
 let name p = p.name
@@ -22,25 +35,25 @@ let photo p = p.photo
 let school p = p.school
 
 (* will return a list of a user’s tags *)
-let groups p = p.groups
+let groups p = p.group_list
 
 (* will return a user’s description *)
-let description p = p.desc
+let description p = p.description
 
 (* will return a list of keyword interests for a user *)
-let interests p = p.interests
+let interests p = p.interest_list
 
 (* will return the experience of a user as a variant *)
-let experience p = p.exp
+let experience p = p.experience
 
 (* will return the role of a user *)
 let role p = p.role
 
 (* will return a tuple of experience as variant and role as string that user is looking for *)
-let looking_for p = p.look_for
+let looking_for p = p.looking_for
 
  (* will return a string to a github.com profile URL *)
-let github p = p.github
+let github p = p.github_url
 
 
 

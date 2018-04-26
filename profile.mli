@@ -5,7 +5,7 @@ type profile
 val init : Yojson.Basic.json -> profile
 
 (* will return the unique user id associated with a profile *)
-val id : profile -> int
+val user_id : profile -> int
 
 (* will return the name of a user *)
 val name : profile -> string

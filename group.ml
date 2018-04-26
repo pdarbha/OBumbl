@@ -1,8 +1,8 @@
 open Tag
 
-type group = {user_id_list: int list; tag : tag; size : int; range : (int*int)}
+type group = {group_id : int; purpose : string; user_id_list: int list; size : int; range_min : int; range_max : int}
 
-let init p t= {user_id_list = [p.id]; tag = t; size = 1; range = t.range} (*make sure this exists in profile!!!*)
+let init p t= {group_id = 0; user_id_list = [p.id]; tag = t; size = 1; range = t.range} (* todo: take group id from server *)
 
 (* module MakeNewGroup  = functor (A:Group) -> functor (B:Group) ->
 struct
