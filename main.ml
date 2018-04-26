@@ -7,6 +7,7 @@ let login_or_register =
 (* User either invokes login or register,
  * login: accepts username, password and looks up user id
  * register: input username, password, email, profile details (edit profile) -> push registration to server, return user id
+ * max length of username is 16, max length of password is 256
  * returns (lr_variant, user id)
  *)
 
