@@ -43,7 +43,3 @@ val edit : profile -> string -> string -> profile
 (* will take in a profile and uploads it to the server and returns true if it is uploaded
  * successfully. Has the side effect of changing information in the server. *)
 val update_server : profile -> boolean
-
-(*will take in a profile and the name of a tag and return the tag that has that name in the
- * list of tags stored in the profile *)
-val find_tags_by_name : profile -> string -> Tag.tag

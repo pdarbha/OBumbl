@@ -1,4 +1,4 @@
-open Group
+open Yojson.Basic
 
 (* Limitations -- ** sanitize/escape all inputs before pushing to server **
 * Name - 64 char (full name) -- alphanumeric + spaces
@@ -14,13 +14,37 @@ open Group
 *)
 
 (* will store all information about each person including id, name, photo, description, etc.*)
-type profile = {user_id:int; name:string; photo:string; school:string; group_list: group list;
+type profile = {user_id:int; name:string; photo:string; school:string; group_id_list: int list;
                 description: string; interest_list: string list; experience : [ `BEG | `INT | `ADV ];
                 role: string; looking_for: ([ `BEG | `INT | `ADV ]*string);
                 github_url : string}
 
+
+let string_to_exp s =
+  if s = "BEG" then `BEG else if s = "INT" then `INT else if s = "ADV" then `ADV
+  else failwith "Experience must be \"BEG\", \"INT\", or \"ADV\""
+
+let string_to_looking_for s =
+  (string_to_exp (String.sub s 0 3), String.sub s 4 ((String.length s)-4))
+
 (* will take in Json file and parse it and store that information in an object of type profile *)
-val init : Yojson.Basic.json -> profile
+let init j =
+  let open Yojson.Basic.Util in
+  let id = j|>member "user_id"|>to_int in
+  let name = j|>member "name"|>to_string in
+  let photo = j|>member "photo"|>to_string in
+  let school = j|>member "school"|>to_string in
+  let groups = j|>member "group_list"|>to_string|>String.split_on_char ';'|>List.map int_of_string in
+  let desc = j|>member "description"|>to_string in
+  let interests = j|>member "interest_list"|>to_string|>String.split_on_char ';' in
+  let exp = j|>member "experience"|>to_string|>string_to_exp in
+  let role = j|>member "role"|>to_string in
+  let look_for = j|>member "looking_for"|>to_string|>string_to_looking_for in
+  let github = j|>member "github_url"|>to_string in
+  {user_id = id; name = name; photo = photo; school = school; group_id_list = groups;
+   description = desc; interest_list = interests; experience = exp; role = role;
+   looking_for = look_for; github_url = github}
+
 
 (* will return the unique user id associated with a profile *)
 let user_id p = p.user_id
@@ -35,7 +59,7 @@ let photo p = p.photo
 let school p = p.school
 
 (* will return a list of a user’s tags *)
-let groups p = p.group_list
+let groups p = p.group_id_list
 
 (* will return a user’s description *)
 let description p = p.description
@@ -55,16 +79,50 @@ let looking_for p = p.looking_for
  (* will return a string to a github.com profile URL *)
 let github p = p.github_url
 
+let list_to_string l=
+  match l with
+  | [] -> ""
+  | _ -> let s = List.fold_left (fun s1 s2 -> s1^";"^s2) "" l in
+         String.sub s 1 ((String.length s)-1)
 
+let int_list_to_string l =
+  let l' = List.map (string_of_int) l in
+  list_to_string l'
+
+let exp_to_string e =
+  match e with
+  |`BEG -> "BEG"
+  |`INT -> "INT"
+  |`ADV -> "ADV"
+
+let to_json (p:profile) : json =
+  `Assoc [("user_id", `Int p.user_id);("name", `String p.name);("photo", `String p.photo);
+          ("school",`String p.school);("group_list", `String (int_list_to_string (p.group_id_list)));
+          ("description", `String p.description);
+          ("interest_list", `String (list_to_string (p.interest_list)));
+          ("experience", `String (exp_to_string (p.experience))); ("role", `String (p.role));
+          ("looking_for", `String ((exp_to_string (fst p.looking_for))^";"^(snd p.looking_for)));
+          ("github_url", `String (p.github_url))]
 
 (* will accept a profile and two strings (field, value) to be updated and returned in new profile *)
-let edit p_old field new_val =
-  failwith "todo later"
+let edit p field new_val =
+  match field with
+  |"user_id" -> (try let i = int_of_string new_val in {p with user_id = i}
+                with _ -> failwith "Tried to set user_id to a non integer value")
+  |"name" -> {p with name = new_val}
+  |"photo" -> {p with photo = new_val}
+  |"school" -> {p with school = new_val}
+  |"group_id_list" -> (try {p with group_id_list = List.map (int_of_string) (String.split_on_char ';' new_val)}
+                with _ -> failwith "Tried to give group_id non integer value")
+  |"description" -> {p with description = new_val}
+  |"interest_list" -> {p with interest_list = String.split_on_char ';' new_val}
+  |"experience" -> {p with experience = (string_to_exp new_val)}
+  |"role" -> {p with role = new_val}
+  |"looking_for" -> {p with looking_for = string_to_looking_for new_val}
+  |"github_url" -> {p with github_url = new_val}
+  | _ -> failwith "Must enter a valid field of profile to edit"
 
 (* will take in a profile and uploads it to the server and returns true if it is uploaded
  * successfully. Has the side effect of changing information in the server. *)
-val update_server : profile -> boolean
-
-(*will take in a profile and the name of a tag and return the tag that has that name in the
- * list of tags stored in the profile *)
-val find_tags_by_name : profile -> string -> Tag.tag
+let update_server p =
+  failwith "todo"
