@@ -15,7 +15,7 @@ open Yojson.Basic.Util
 *)
 
 (* will store all information about each person including id, name, photo, description, etc.*)
-type profile = {user_id:int; name:string; photo:string; school:string; group_id_list: int list;
+type profile = {user_id:int; name:string; photo:string ref; school:string; group_id_list: int list;
                 description: string; interest_list: string list; experience : [ `BEG | `INT | `ADV ];
                 role: string; looking_for: ([ `BEG | `INT | `ADV ]*string);
                 github_url : string}
@@ -45,7 +45,7 @@ let to_string_trimmed j field=
 let init j =
   let id = j|>member "user_id"|>to_string|>int_of_string in
   let name = j|>member "name"|>to_string in
-  let photo = j|>member "photo"|>to_string in
+  let photo = ref (j|>member "photo"|>to_string) in
   let school = j|>member "school"|>to_string in
   let groups = let s = j|>member "group_list"|>to_string in
       if s = "" then [] else s|>String.split_on_char ';'|>List.map int_of_string in
@@ -67,7 +67,7 @@ let user_id p = p.user_id
 let name p = p.name
 
 (* will return the photo of a user, encoded as a Base64 string *)
-let photo p = p.photo
+let photo p = !(p.photo)
 
 (* will return the school of a user *)
 let school p = p.school
@@ -111,23 +111,13 @@ let exp_to_string e =
 
 let looking_for_to_string lf = (exp_to_string (fst lf)) ^ ";" ^ (snd lf)
 
-let to_json (p:profile) : json =
-  let photo = match p.photo with None -> `Null | Some s -> `String s in
-  `Assoc [("user_id", `Int p.user_id);("name", `String p.name);("photo", photo);
-          ("school",`String p.school);("group_list", `String (int_list_to_string (p.group_id_list)));
-          ("description", `String p.description);
-          ("interest_list", `String (list_to_string (p.interest_list)));
-          ("experience", `String (exp_to_string (p.experience))); ("role", `String (p.role));
-          ("looking_for", `String ((exp_to_string (fst p.looking_for))^";"^(snd p.looking_for)));
-          ("github_url", `String (p.github_url))]
-
 (* will accept a profile and two strings (field, value) to be updated and returned in new profile *)
 let edit p field new_val =
   match field with
   |"user_id" -> (try let i = int_of_string new_val in {p with user_id = i}
                 with _ -> failwith "Tried to set user_id to a non integer value")
   |"name" -> {p with name = new_val}
-  |"photo" -> if new_val = "null" then {p with photo = None} else {p with photo = Some new_val}
+  |"photo" -> {p with photo = ref (new_val)}
   |"school" -> {p with school = new_val}
   |"group_id_list" -> (try {p with group_id_list = List.map (int_of_string) (String.split_on_char ';' new_val)}
                 with _ -> failwith "Tried to give group_id non integer value")
@@ -147,7 +137,7 @@ let lookup_profile id =
 (* will take in a profile and uploads it to the server and returns true if it is uploaded
  * successfully. Has the side effect of changing information in the server. *)
 let update_server p =
-  let params = [("user_id", string_of_int (p.user_id));("name", (p.name));("photo", (p.photo));("school", (p.school));("group_id_list", int_list_to_string (p.group_id_list));("description", (p.description));("interest_list", list_to_string (p.interest_list));("experience", exp_to_string (p.experience));("role", (p.role));("looking_for", looking_for_to_string (p.looking_for));("github_url", encode_url (p.github_url))] in
+  let params = [("user_id", string_of_int (p.user_id));("name", (p.name));("photo", (!(p.photo)));("school", (p.school));("group_id_list", int_list_to_string (p.group_id_list));("description", (p.description));("interest_list", list_to_string (p.interest_list));("experience", exp_to_string (p.experience));("role", (p.role));("looking_for", looking_for_to_string (p.looking_for));("github_url", encode_url (p.github_url))] in
   let update = (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/insert_profile.php" params) in
   if update = "1" then true
   else false

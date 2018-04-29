@@ -11,7 +11,7 @@ val user_id : profile -> int
 val name : profile -> string
 
 (* will return the photo of a user, encoded as a Base64 string *)
-val photo : profile -> string option
+val photo : profile -> string
 
 (* will return the school of a user *)
 val school : profile -> string
@@ -39,6 +39,9 @@ val github : profile -> string
 
 (* will accept a profile and two strings (field, value) to be updated and returned in new profile *)
 val edit : profile -> string -> string -> profile
+
+(* Query server and pull profile json from server, convert to profile type *)
+val lookup_profile : int -> profile
 
 (* will take in a profile and uploads it to the server and returns true if it is uploaded
  * successfully. Has the side effect of changing information in the server. *)
