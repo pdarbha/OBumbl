@@ -40,5 +40,5 @@ let rec create_group p =
   let update = (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/insert_group.php" params) in
     if update = "-1" then
       (print_string "Group could not be created, try again.\n";
-      init_group p)
+      create_group p)
     else (lookup_group (int_of_string update))
