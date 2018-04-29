@@ -2,7 +2,7 @@
 type profile
 
 (* will take in Json file and parse it and store that information in an object of type profile *)
-val init : Yojson.Basic.json -> profile
+val init_profile : Yojson.Basic.json -> profile
 
 (* will return the unique user id associated with a profile *)
 val user_id : profile -> int
