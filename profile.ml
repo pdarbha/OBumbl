@@ -61,6 +61,11 @@ let github p = p.github_url
 let edit p_old field new_val =
   failwith "todo later"
 
+(* Query server and pull profile json from server, convert to profile type *)
+let lookup_profile id =
+  let jsonProfileString = Nethttp_client.Convenience.http_get ("http://18.204.146.26/obumbl/get_profile.php?user_id=" ^ (string_of_int id)) in
+  init (Yojson.Basic.from_string jsonProfileString)
+
 (* will take in a profile and uploads it to the server and returns true if it is uploaded
  * successfully. Has the side effect of changing information in the server. *)
 val update_server : profile -> boolean
