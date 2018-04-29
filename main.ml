@@ -3,7 +3,23 @@ open Profile
 type lr_variant = Login | Register
 
 let login_or_register =
-  failwith "undefined"
+  let input = ref "" in
+  while !input <> "login" && !input <> "register" do
+    print_string "Enter \"login\" or \"register\": ";
+    input := String.lowercase_ascii (String.trim (read_line ()));
+    if !input == "login" then
+      (print_string "Enter username: ";
+      let username = String.trim (read_line ()) in
+      print_string "Enter password: ";
+      let password = String.trim (read_line ()) in
+      (Login, (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/login.php" [("username",username);("password",password)])))
+    else (if !input == "register" then
+      print_string "Enter username: ";
+      let username = String.trim (read_line ()) in
+      print_string "Enter password: ";
+      let password = String.trim (read_line ()) in
+      (Register, (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/login.php" [("username",username);("password",password)])))
+  done
 (* User either invokes login or register,
  * login: accepts username, password and looks up user id
  * register: input username, password, email, profile details (edit profile) -> push registration to server, return user id
