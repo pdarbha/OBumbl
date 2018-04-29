@@ -1,30 +1,28 @@
-open Tag
+open Profile
+open Yojson.Basic
+open Yojson.Basic.Util
 
-type group = {group_id : int; purpose : string; user_id_list: int list; size : int;
+type group = {group_id : int; user_id_list: int list; purpose : string; size : int;
               range : (int * int); group_blacklist : int list;
               invited_groups_list : int list; received_invites_list : int list}
 
-let init p uid min max = {group_id = 0; purpose = p; user_id_list = [uid];
-                          tag = t; size = 1; range = (min, max); group_blacklist = [];
-                          invited_groups_list = []; received_invites_list = []} (* todo: take group id from server *)
+let print_read s =
+  let () = print_string s in
+  read_line()
 
-(* module MakeNewGroup  = functor (A:Group) -> functor (B:Group) ->
-struct
-  type group *)
+let init_group j = failwith "implement"
 
+let lookup_group id =
+  let jsonGroupString = Nethttp_client.Convenience.http_get ("http://18.204.146.26/obumbl/get_group.php?group_id=" ^ (string_of_int id)) in
+  init_group (from_string jsonGroupString)
 
-let union a b = failwith "unimplemented"
-
-let range a b = (max (fst a.range) (fst b.range), min (snd a.range) (snd b.range))
-
-let new_group a b = {
-  group_name = a.group_name (*TODO: change placeholder name*);
-  user_id_list = a.user_id_list @ b.user_id_list;
-  tag_list = union a.tag_list b.tag_list;
-  size = a.size + b.size;
-
-}
-
-let match_order = failwith "unimplemented"
-
-let size g= g.size
+let rec create_group p =
+  let purpose = print_read "Enter project code: " in
+  let range_min = print_read "Enter minimum desired group size: " in
+  let range_max = print_read "Enter maximum desired group size: " in
+  let params = [("user_id_list", string_of_int (user_id p));("purpose", purpose);("size","1");("range_min", range_min);("range_max", range_max);("group_blacklist","");("invited_groups_list","");("received_invites_list","")] in
+  let update = (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/insert_group.php" params) in
+    if update = "-1" then
+      (print_string "Group could not be created, try again.\n";
+      init_group p)
+    else (lookup_group (int_of_string update))

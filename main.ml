@@ -1,4 +1,5 @@
 open Profile
+open Group
 
 type lr_variant = Login | Register
 
@@ -31,8 +32,9 @@ let login_or_register =
   !output
 
 (* Pull all relevant data to user from server as json and store as record *)
-let pull_data id =
-  failwith "undefined"
+let pull_group_data p =
+  let group_int_list = groups p in
+  List.map (fun id -> lookup_group id) group_int_list
 
 (* *)
 let () =
@@ -43,7 +45,7 @@ let () =
   else
     if (fst lr) = Register then create_profile user_id else ();
     let user_profile : profile = Profile.lookup_profile user_id in
-    let data = pull_data user_id in
+    let data = pull_group_data user_profile in
     match fst lr with
     | Login -> failwith "open tags"
     | Register -> failwith "open edit profile"
