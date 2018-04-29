@@ -11,7 +11,7 @@ val user_id : profile -> int
 val name : profile -> string
 
 (* will return the photo of a user, encoded as a Base64 string *)
-val photo : profile -> string
+val photo : profile -> string option
 
 (* will return the school of a user *)
 val school : profile -> string

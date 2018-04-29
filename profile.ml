@@ -1,4 +1,5 @@
 open Yojson.Basic
+open Yojson.Basic.Util
 
 (* Limitations -- ** sanitize/escape all inputs before pushing to server **
 * Name - 64 char (full name) -- alphanumeric + spaces
@@ -14,7 +15,7 @@ open Yojson.Basic
 *)
 
 (* will store all information about each person including id, name, photo, description, etc.*)
-type profile = {user_id:int; name:string; photo:string; school:string; group_id_list: int list;
+type profile = {user_id:int; name:string; photo:string option; school:string; group_id_list: int list;
                 description: string; interest_list: string list; experience : [ `BEG | `INT | `ADV ];
                 role: string; looking_for: ([ `BEG | `INT | `ADV ]*string);
                 github_url : string}
@@ -26,15 +27,23 @@ let string_to_exp s =
 
 let string_to_looking_for s =
   (string_to_exp (String.sub s 0 3), String.sub s 4 ((String.length s)-4))
+(*
+Used to remove escaped quotation marks when that is what the JSON has,
+not necessary though.
+let to_string_trimmed j field=
+  let s = j|>member field|>to_string in
+  if String.length s <2 then "" else
+  (String.sub s 1 (String.length s -2))
+*)
 
 (* will take in Json file and parse it and store that information in an object of type profile *)
 let init j =
-  let open Yojson.Basic.Util in
-  let id = j|>member "user_id"|>to_int in
+  let id = j|>member "user_id"|>to_string|>int_of_string in
   let name = j|>member "name"|>to_string in
-  let photo = j|>member "photo"|>to_string in
+  let photo = j|>member "photo"|>to_string_option in
   let school = j|>member "school"|>to_string in
-  let groups = j|>member "group_list"|>to_string|>String.split_on_char ';'|>List.map int_of_string in
+  let groups = let s = j|>member "group_list"|>to_string in
+      if s = "" then [] else s|>String.split_on_char ';'|>List.map int_of_string in
   let desc = j|>member "description"|>to_string in
   let interests = j|>member "interest_list"|>to_string|>String.split_on_char ';' in
   let exp = j|>member "experience"|>to_string|>string_to_exp in
@@ -96,7 +105,8 @@ let exp_to_string e =
   |`ADV -> "ADV"
 
 let to_json (p:profile) : json =
-  `Assoc [("user_id", `Int p.user_id);("name", `String p.name);("photo", `String p.photo);
+  let photo = match p.photo with None -> `Null | Some s -> `String s in
+  `Assoc [("user_id", `Int p.user_id);("name", `String p.name);("photo", photo);
           ("school",`String p.school);("group_list", `String (int_list_to_string (p.group_id_list)));
           ("description", `String p.description);
           ("interest_list", `String (list_to_string (p.interest_list)));
@@ -110,7 +120,7 @@ let edit p field new_val =
   |"user_id" -> (try let i = int_of_string new_val in {p with user_id = i}
                 with _ -> failwith "Tried to set user_id to a non integer value")
   |"name" -> {p with name = new_val}
-  |"photo" -> {p with photo = new_val}
+  |"photo" -> if new_val = "null" then {p with photo = None} else {p with photo = Some new_val}
   |"school" -> {p with school = new_val}
   |"group_id_list" -> (try {p with group_id_list = List.map (int_of_string) (String.split_on_char ';' new_val)}
                 with _ -> failwith "Tried to give group_id non integer value")
