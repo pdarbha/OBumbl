@@ -15,14 +15,19 @@ open Yojson.Basic.Util
 *)
 
 (* will store all information about each person including id, name, photo, description, etc.*)
-type profile = {user_id:int; name:string; photo:string option; school:string; group_id_list: int list;
+type profile = {user_id:int; name:string; photo:string; school:string; group_id_list: int list;
                 description: string; interest_list: string list; experience : [ `BEG | `INT | `ADV ];
                 role: string; looking_for: ([ `BEG | `INT | `ADV ]*string);
                 github_url : string}
 
+let encode_url u = Netencoding.Url.encode u
+
+let decode_url u = Netencoding.Url.decode u
 
 let string_to_exp s =
-  if s = "BEG" then `BEG else if s = "INT" then `INT else if s = "ADV" then `ADV
+  if s = "BEG" then `BEG
+  else if s = "INT" then `INT
+  else if s = "ADV" then `ADV
   else failwith "Experience must be \"BEG\", \"INT\", or \"ADV\""
 
 let string_to_looking_for s =
@@ -40,7 +45,7 @@ let to_string_trimmed j field=
 let init j =
   let id = j|>member "user_id"|>to_string|>int_of_string in
   let name = j|>member "name"|>to_string in
-  let photo = j|>member "photo"|>to_string_option in
+  let photo = j|>member "photo"|>to_string in
   let school = j|>member "school"|>to_string in
   let groups = let s = j|>member "group_list"|>to_string in
       if s = "" then [] else s|>String.split_on_char ';'|>List.map int_of_string in
@@ -49,7 +54,7 @@ let init j =
   let exp = j|>member "experience"|>to_string|>string_to_exp in
   let role = j|>member "role"|>to_string in
   let look_for = j|>member "looking_for"|>to_string|>string_to_looking_for in
-  let github = j|>member "github_url"|>to_string in
+  let github = j|>member "github_url"|>to_string |> decode_url in
   {user_id = id; name = name; photo = photo; school = school; group_id_list = groups;
    description = desc; interest_list = interests; experience = exp; role = role;
    looking_for = look_for; github_url = github}
@@ -104,6 +109,8 @@ let exp_to_string e =
   |`INT -> "INT"
   |`ADV -> "ADV"
 
+let looking_for_to_string lf = (exp_to_string (fst lf)) ^ ";" ^ (snd lf)
+
 let to_json (p:profile) : json =
   let photo = match p.photo with None -> `Null | Some s -> `String s in
   `Assoc [("user_id", `Int p.user_id);("name", `String p.name);("photo", photo);
@@ -140,4 +147,7 @@ let lookup_profile id =
 (* will take in a profile and uploads it to the server and returns true if it is uploaded
  * successfully. Has the side effect of changing information in the server. *)
 let update_server p =
-  failwith "todo"
+  let params = [("user_id", string_of_int (p.user_id));("name", (p.name));("photo", (p.photo));("school", (p.school));("group_id_list", int_list_to_string (p.group_id_list));("description", (p.description));("interest_list", list_to_string (p.interest_list));("experience", exp_to_string (p.experience));("role", (p.role));("looking_for", looking_for_to_string (p.looking_for));("github_url", encode_url (p.github_url))] in
+  let update = (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/insert_profile.php" params) in
+  if update = "1" then true
+  else false
