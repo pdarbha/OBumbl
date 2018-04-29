@@ -109,6 +109,8 @@ let exp_to_string e =
   |`INT -> "INT"
   |`ADV -> "ADV"
 
+let split_to_string_list str = String.split_on_char ';' str
+
 let looking_for_to_string lf = (exp_to_string (fst lf)) ^ ";" ^ (snd lf)
 
 let to_json (p:profile) : json =
@@ -151,3 +153,24 @@ let update_server p =
   let update = (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/insert_profile.php" params) in
   if update = "1" then true
   else false
+
+let print_read s =
+  let () = print_string s in
+  read_line()
+
+let rec create_profile id =
+  let n = print_read "Enter your full name: " in
+  let s = print_read "Enter your school: " in
+  let d = print_read "Enter your description: " in
+  let interests = print_read "Enter your interests (semi-colon seperated): " in
+  let exp = print_read "Are you a beginner (BEG), intermediate (INT), or advanced (ADV) computer scientist? " in
+  let r = print_read "What is your typical role on a team? " in
+  let lf_exp = print_read "Are you looking to work with beginner (BEG), intermediate (INT), or advanced (ADV) team members? " in
+  let lf_role = print_read "What role are you most looking for in your team? " in
+  let github = print_read "What's your github URL? " in
+  let prof = {user_id = id; name = n; photo = ""; school = s; group_id_list = []; description = d; interest_list = (split_to_string_list interests); experience = (string_to_exp exp); role = r; looking_for = (string_to_exp lf_exp, lf_role); github_url = github} in
+  if (update_server prof)
+    then ()
+  else
+    (print_string "Invalid information, please enter your details again.\n";
+    create_profile id)

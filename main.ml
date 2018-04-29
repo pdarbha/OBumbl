@@ -40,7 +40,9 @@ let () =
   let user_id = int_of_string (snd lr) in
   if user_id = -1 then
     failwith ((match fst lr with Login -> "Login" | Register -> "Register") ^ " unsuccessful.")
-  else  let user_profile : profile = Profile.lookup_profile user_id in
+  else
+    if (fst lr) = Register then create_profile user_id else ();
+    let user_profile : profile = Profile.lookup_profile user_id in
     let data = pull_data user_id in
     match fst lr with
     | Login -> failwith "open tags"
