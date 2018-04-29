@@ -158,7 +158,7 @@ let rec create_profile id =
   let lf_exp = print_read "Are you looking to work with beginner (BEG), intermediate (INT), or advanced (ADV) team members? " in
   let lf_role = print_read "What role are you most looking for in your team? " in
   let github = print_read "What's your github URL? " in
-  let prof = {user_id = id; name = n; photo = ""; school = s; group_id_list = []; description = d; interest_list = (split_to_string_list interests); experience = (string_to_exp exp); role = r; looking_for = (string_to_exp lf_exp, lf_role); github_url = github} in
+  let prof = {user_id = id; name = n; photo = ref ""; school = s; group_id_list = []; description = d; interest_list = (split_to_string_list interests); experience = (string_to_exp exp); role = r; looking_for = (string_to_exp lf_exp, lf_role); github_url = github} in
   if (update_server prof)
     then ()
   else
