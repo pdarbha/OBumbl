@@ -34,11 +34,21 @@ let lookup_group id =
 
 let rec create_group p =
   let purpose = print_read "Enter project code: " in
-  let range_min = print_read "Enter minimum desired group size: " in
-  let range_max = print_read "Enter maximum desired group size: " in
-  let params = [("user_id_list", string_of_int (user_id p));("purpose", purpose);("size","1");("range_min", range_min);("range_max", range_max);("group_blacklist","");("invited_groups_list","");("received_invites_list","")] in
-  let update = (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/insert_group.php" params) in
-    if update = "-1" then
-      (print_string "Group could not be created, try again.\n";
-      create_group p)
-    else (lookup_group (int_of_string update))
+  if String.contains purpose ' ' then
+    (print_string "Invalid project code.\n"; create_group p)
+  else
+    let range_min = print_read "Enter minimum desired group size: " in
+    let range_max = print_read "Enter maximum desired group size: " in
+    let params = [("user_id_list", string_of_int (user_id p));("purpose", purpose);("size","1");("range_min", range_min);("range_max", range_max);("group_blacklist","");("invited_groups_list","");("received_invites_list","")] in
+    let update = (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/insert_group.php" params) in
+      if update = "-1" then
+        (print_string "Group could not be created, try again.\n";
+        create_group p)
+      else (lookup_group (int_of_string update))
+
+let group_to_string g =
+  "Project code : "^g.purpose^"\nMinimum size: "^fst(g.range)^"\nMaximum size: "^snd(g.range)^"\n"
+
+let show_groups group_list =
+  print_endline "Your groups are:";
+  List.iter (fun g -> print_endline (group_to_string g)) group_list
