@@ -55,3 +55,37 @@ let group_to_string g =
 let show_groups group_list =
   print_endline "Your groups are:";
   List.iter (fun g -> print_endline (group_to_string g)) group_list
+
+let size g = g.size
+
+let range g = g.range
+
+let union g1 g2 =
+  let users = int_list_to_string ((g1.user_id_list)@(g2.user_id_list)) in
+  let size = string_of_int ((g1.size) + (g2.size)) in
+  let range_min = max (fst (g1.range)) (fst (g2.range)) in
+  let range_max = min (fst (g1.range)) (fst (g2.range)) in
+  let params = [("user_id_list", users);("purpose", g1.purpose);("size",size);("range_min", range_min);("range_max", range_max);("group_blacklist","");("invited_groups_list","");("received_invites_list","")] in
+  let update = (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/insert_group.php" params) in
+    if update = "-1" then
+      (print_string "Group could not be created, try again.\n";
+      create_group p)
+    else (lookup_group (int_of_string update))
+
+let rec invites g =
+  if g.invites = [] then () else
+    List.iter about_group (g.invites);
+    let resp = print_read "Enter \"accept\" or \"reject\" followed by the group's id to accept or reject the invite respectively or \"back\" to return to the previous page" in
+    match (String.split_on_char ' ' resp) with
+    |"accept"::x::[] -> failwith "every profile must be updated now"
+    |"reject"::x::[] ->
+      let other = int_of_string x in
+      let new_g = {g with received_invites_list = (List.filter (fun x -> x<>other) (g.invites)); group_blacklist = other::(g.group_blacklist)}
+      invites new_g
+    |"back"::[] ->
+      let params = [("group_id", g.group_id);("group_blacklist",g.group_blacklist);("received_invites_list",g.received_invites_list);("invited_groups_list",g.invited_groups_list)] in
+      let update = (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/update_group_lists.php" params) in
+      if update = "-1" then
+        (print_string "Updating server unsuccessful, try again.\n";
+        invites g)
+      else ()
