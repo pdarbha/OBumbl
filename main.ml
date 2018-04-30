@@ -1,4 +1,5 @@
 open Profile
+open Group
 
 type lr_variant = Login | Register
 
@@ -31,8 +32,18 @@ let login_or_register =
   !output
 
 (* Pull all relevant data to user from server as json and store as record *)
-let pull_data id =
-  failwith "undefined"
+let pull_group_data p =
+  let group_int_list = groups p in
+  List.map (fun id -> lookup_group id) group_int_list
+
+let repl p group_list =
+  let resp = print_read "Enter \"about\", \"invites\", or \"swipe\", followed by the group's project code, to see the respective information or enter \"new group\" to create a new group: " in
+  match (String.split_on_char ' ' resp) with
+  | "about"::x::[] ->
+  | "invites"::x::[] ->
+  | "swipe"::x::[] ->
+  | "new"::"group"::[] ->
+  | _ -> ""
 
 (* *)
 let () =
@@ -41,9 +52,8 @@ let () =
   if user_id = -1 then
     failwith ((match fst lr with Login -> "Login" | Register -> "Register") ^ " unsuccessful.")
   else
-    if (fst lr) = Register then create_profile user_id else ();
-    let user_profile : profile = Profile.lookup_profile user_id in
-    let data = pull_data user_id in
-    match fst lr with
-    | Login -> failwith "open tags"
-    | Register -> failwith "open edit profile"
+  (if (fst lr) = Register then create_profile user_id else ());
+    let user_profile = lookup_profile user_id in
+    let group_data = pull_group_data user_profile in
+    show_groups group_data;
+    repl user_profile group_data
