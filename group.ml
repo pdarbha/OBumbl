@@ -136,5 +136,5 @@ let leave p g =
     leave p g)
   else
     let updated_profiles = List.map (fun x -> lookup_profile x) updated_users in
-    List.iter (fun x -> update_server (add_group x update)) updated_profiles;
+    List.iter (fun x -> update_server (add_group x (int_of_string update))) updated_profiles;
     delete_group g
