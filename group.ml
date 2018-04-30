@@ -105,4 +105,20 @@ let rec invites g =
 
 let swipe g = failwith "undefined"
 
-let leave p g = failwith "undefined"
+let leave p g =
+  let updated_users = int_list_to_string (List.filter (fun x -> x<>(user_id p)) g.user_id_list) in
+  let range_min = string_of_int (fst (g.range)) in
+  let range_max = string_of_int (snd (g.range)) in
+  let blacklist = int_list_to_string g.group_blacklist in
+  let received = int_list_to_string g.received_invites_list in
+  let invited = int_list_to_string g.invited_groups_list in
+  let params = [("user_id_list", updated_users);("purpose", g.purpose);("size",string_of_int (g.size - 1));("range_min", range_min);
+                ("range_max", range_max);("group_blacklist",blacklist);("invited_groups_list",invited);("received_invites_list",received)] in
+  let update = (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/insert_group.php" params) in
+  if update = "-1" then
+    (print_string "Updated group could not be created, try again.\n";
+    leave p g)
+  else
+    let updated_profiles = List.map (fun x -> lookup_profile x) updated_users in
+    List.iter (fun x -> update_server (add_group x update)) updated_profiles;
+    delete_group g
