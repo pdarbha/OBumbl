@@ -69,13 +69,12 @@ let range g = g.range
 let union g1 g2 =
   let users = int_list_to_string ((g1.user_id_list)@(g2.user_id_list)) in
   let size = string_of_int ((g1.size) + (g2.size)) in
-  let range_min = max (fst (g1.range)) (fst (g2.range)) in
-  let range_max = min (snd (g1.range)) (snd (g2.range)) in
+  let range_min = string_of_int (max (fst (g1.range)) (fst (g2.range))) in
+  let range_max = string_of_int (min (snd (g1.range)) (snd (g2.range))) in
   let params = [("user_id_list", users);("purpose", g1.purpose);("size",size);("range_min", range_min);("range_max", range_max);("group_blacklist","");("invited_groups_list","");("received_invites_list","")] in
   let update = (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/insert_group.php" params) in
-    if update = "-1" then
-      (print_string "Errors occured during group acceptance.\n";)
-    else ()
+  if update = "-1" then print_string "Errors occured during group acceptance.\n" else ();
+  int_of_string update
 
 let delete_group g =
   let profile_list = List.map (fun id -> lookup_profile id) g.user_id_list in
@@ -102,7 +101,10 @@ let rec invites g =
       let acceptedGroup = find_group_by_id (int_of_string x) inviting_groups in
       delete_group g;
       delete_group acceptedGroup;
-      union g acceptedGroup
+      let profile_union = List.map (fun id -> lookup_profile id) ((g.user_id_list)@(acceptedGroup.user_id_list)) in
+      let update = union g acceptedGroup in
+      if update = -1 then ()
+      else List.iter (fun p -> update_server (add_group p update)) profile_union
     | "reject"::x::[] ->
       let other = int_of_string x in
       let blacklist = if List.mem other g.group_blacklist then g.group_blacklist else other::(g.group_blacklist) in
