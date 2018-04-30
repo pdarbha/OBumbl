@@ -7,8 +7,6 @@
 		$id = $conn->query("SELECT `user_id` FROM `credentials` WHERE `username` = \"".$_POST['username']."\" AND `password` = \"".$_POST['password']."\";");
 		$row = $id->fetch_assoc();
 		echo $row['user_id'];
-		$id->close();
-		$result->close();
 	} else {
 		echo "-1";
 	}
