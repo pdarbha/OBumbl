@@ -81,19 +81,23 @@ let about_group g =
   List.iter (fun p -> about_profile p) users
 
 let rec invites g =
-  if g.invites = [] then () else
-    List.iter about_group (g.invites);
+  if g.received_invites_list = [] then print_endline "you have no invitations" else
+    List.iter about_group (g.received_invites_list);
     let resp = print_read "Enter \"accept\" or \"reject\" followed by the group's id to accept or reject the invite respectively or \"back\" to return to the previous page" in
     match (String.split_on_char ' ' resp) with
     |"accept"::x::[] -> failwith "every profile must be updated now"
     |"reject"::x::[] ->
       let other = int_of_string x in
-      let new_g = {g with received_invites_list = (List.filter (fun x -> x<>other) (g.invites)); group_blacklist = other::(g.group_blacklist)}
-      invites new_g
+      let blacklist = if List.mem other g.group_blacklist then g.group_blacklist else other::(g.group_blacklist) in
+      let g' = {g with received_invites_list = (List.filter (fun x -> x<>other) (g.received_invites_list)); group_blacklist = blacklist)} in
+      invites g'
     |"back"::[] ->
-      let params = [("group_id", g.group_id);("group_blacklist",g.group_blacklist);("received_invites_list",g.received_invites_list);("invited_groups_list",g.invited_groups_list)] in
+      let blacklist = int_list_to_string g.group_blacklist in
+      let received = int_list_to_string g.received_invites_list in
+      let invited = int_list_to_string g.invited_groups_list in
+      let params = [("group_id", (string_of_int g.group_id));("group_blacklist",blacklist);("received_invites_list",received);("invited_groups_list",invited)] in
       let update = (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/update_group_lists.php" params) in
       if update = "-1" then
         (print_string "Updating server unsuccessful, try again.\n";
         invites g)
-      else ()
+      else print_endline "returning to groups"
