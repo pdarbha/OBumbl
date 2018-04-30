@@ -10,19 +10,21 @@ open Yojson.Basic.Util*)
 * interests - 15 char limit per interest, 40 interests max (alphanumeric + spaces) -- i0;i1;i2;...;i39
 * experience - "BEG" or "INT" or "ADV"
 * role - 32 char (alphanumeric + spaces)
-* looking_for - "BEG" or "INT" or "ADV" for exp, 32 for role (alphanumeric + spaces) -- exp;role
+* looking_for list - "BEG" or "INT" or "ADV" for exp, 32 for role (alphanumeric + spaces) -- exp1 role1;exp2 role2
 * Github URL - 60 char (URL encoded then decoded -- example: https://www.urlencoder.org)
 *)
 
 (* will store all information about each person including id, name, photo, description, etc.*)
 type profile = {user_id:int; name:string; photo:string ref; school:string; group_id_list: int list;
                 description: string; interest_list: string list; experience : [ `BEG | `INT | `ADV ];
-                role: string; looking_for: ([ `BEG | `INT | `ADV ]*string);
+                role: string; looking_for: ([ `BEG | `INT | `ADV ]*string) list;
                 github_url : string}
 
 let encode_url u = Netencoding.Url.encode u
 
 let decode_url u = Netencoding.Url.decode u
+
+let split_to_string_list str = String.split_on_char ';' str
 
 let string_to_exp s =
   if s = "BEG" then `BEG
@@ -31,7 +33,7 @@ let string_to_exp s =
   else failwith "Experience must be \"BEG\", \"INT\", or \"ADV\""
 
 let string_to_looking_for s =
-  (string_to_exp (String.sub s 0 3), String.sub s 4 ((String.length s)-4))
+  List.map (fun el -> (string_to_exp (String.sub el 0 3), String.sub el 4 ((String.length el)-4))) (split_to_string_list s)
 (*
 Used to remove escaped quotation marks when that is what the JSON has,
 not necessary though.
@@ -109,9 +111,10 @@ let exp_to_string e =
   |`INT -> "INT"
   |`ADV -> "ADV"
 
-let split_to_string_list str = String.split_on_char ';' str
-
-let looking_for_to_string lf = (exp_to_string (fst lf)) ^ ";" ^ (snd lf)
+let rec looking_for_to_string lf =
+  match lf with
+  | [] -> ""
+  | h::t -> (exp_to_string (fst h)) ^ " " ^ (snd h) ^ ";" ^ (looking_for_to_string t)
 
 (* will accept a profile and two strings (field, value) to be updated and returned in new profile *)
 let edit p field new_val =
@@ -155,6 +158,12 @@ let print_read s =
   let () = print_string s in
   read_line()
 
+let rec cp_looking_for =
+  let lf_role = print_read "Please enter a role you are looking for on your team or type \"done\"? " in
+  if String.lowercase_ascii (String.trim lf_role) = "done" then []
+  else let lf_exp = print_read "Are you looking for a beginner (BEG), intermediate (INT), or advanced (ADV) " ^ lf_role ^ " ? " in
+  (string_to_exp lf_exp, lf_role)::cp_looking_for
+
 let rec create_profile id =
   let n = print_read "Enter your full name: " in
   let s = print_read "Enter your school: " in
@@ -162,10 +171,9 @@ let rec create_profile id =
   let interests = print_read "Enter your interests (semi-colon seperated): " in
   let exp = print_read "Are you a beginner (BEG), intermediate (INT), or advanced (ADV) computer scientist? " in
   let r = print_read "What is your typical role on a team? " in
-  let lf_exp = print_read "Are you looking to work with beginner (BEG), intermediate (INT), or advanced (ADV) team members? " in
-  let lf_role = print_read "What role are you most looking for in your team? " in
+  let lf = cp_looking_for in
   let github = print_read "What's your github URL? " in
-  let prof = {user_id = id; name = n; photo = ref ""; school = s; group_id_list = []; description = d; interest_list = (split_to_string_list interests); experience = (string_to_exp exp); role = r; looking_for = (string_to_exp lf_exp, lf_role); github_url = github} in
+  let prof = {user_id = id; name = n; photo = ref ""; school = s; group_id_list = []; description = d; interest_list = (split_to_string_list interests); experience = (string_to_exp exp); role = r; looking_for = lf; github_url = github} in
   if (update_server prof)
     then ()
   else
