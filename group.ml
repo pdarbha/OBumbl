@@ -55,6 +55,9 @@ let group_to_string g =
 let find_group_by_code purpose group_list =
   List.find_opt (fun group -> group.purpose = purpose) group_list
 
+let find_group_by_id id group_list =
+  List.find_opt (fun group -> group.group_id = id) group_list
+
 let show_groups group_list =
   print_endline "Your groups are:";
   List.iter (fun g -> print_endline (group_to_string g)) group_list
@@ -67,31 +70,45 @@ let union g1 g2 =
   let users = int_list_to_string ((g1.user_id_list)@(g2.user_id_list)) in
   let size = string_of_int ((g1.size) + (g2.size)) in
   let range_min = max (fst (g1.range)) (fst (g2.range)) in
-  let range_max = min (fst (g1.range)) (fst (g2.range)) in
+  let range_max = min (snd (g1.range)) (snd (g2.range)) in
   let params = [("user_id_list", users);("purpose", g1.purpose);("size",size);("range_min", range_min);("range_max", range_max);("group_blacklist","");("invited_groups_list","");("received_invites_list","")] in
   let update = (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/insert_group.php" params) in
     if update = "-1" then
-      (print_string "Group could not be created, try again.\n";
-      create_group p)
-    else (lookup_group (int_of_string update))
+      (print_string "Errors occured during group acceptance.\n";)
+    else ()
+
+let delete_group g =
+  let profile_list = List.map (fun id -> lookup_profile id) g.user_id_list in
+  List.iter (fun p -> update_server (remove_group p (g.group_id))) profile_list;
+  let update = (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/delete_group.php" [("group_id",string_of_int g.group_id)]) in
+  if update = "-1" then
+    (print_string "Errors occured during group acceptance.\n";)
+  else ()
 
 let about_group g =
   let users = List.map (fun id -> lookup_profile id) g.user_id_list in
-  print_string "Group for " ^ g.purpose ^ ":\nMembers (" ^ g.size ^ "[min " ^ g.range_min ^ ", max " ^ g.range_max ^ "] ):\n";
+  print_string "Group for " ^ g.purpose ^ " (ID " ^ g.group_id ^ "):\nMembers (" ^ g.size ^ "[min " ^ g.range_min ^ ", max " ^ g.range_max ^ "] ):\n";
   List.iter (fun p -> about_profile p) users
 
 let rec invites g =
-  if g.received_invites_list = [] then print_endline "you have no invitations" else
+  if g.received_invites_list = [] then
+    print_endline "You have no invitations."
+  else
     List.iter about_group (g.received_invites_list);
-    let resp = print_read "Enter \"accept\" or \"reject\" followed a group's code, or \"back\" to return to the previous page: " in
+    let resp = print_read "Enter \"accept\" or \"reject\" followed a group's id, or \"back\" to return to the previous page: " in
     match (String.split_on_char ' ' resp) with
-    |"accept"::x::[] -> failwith "every profile must be updated now"
-    |"reject"::x::[] ->
+    | "accept"::x::[] ->
+      let inviting_groups = List.map (fun id -> lookup_group id) g.received_invites_list in
+      let acceptedGroup = find_group_by_id (int_of_string x) inviting_groups in
+      delete_group g;
+      delete_group acceptedGroup;
+      union g acceptedGroup
+    | "reject"::x::[] ->
       let other = int_of_string x in
       let blacklist = if List.mem other g.group_blacklist then g.group_blacklist else other::(g.group_blacklist) in
       let g' = {g with received_invites_list = (List.filter (fun x -> x<>other) (g.received_invites_list)); group_blacklist = blacklist)} in
       invites g'
-    |"back"::[] ->
+    | "back"::[] ->
       let blacklist = int_list_to_string g.group_blacklist in
       let received = int_list_to_string g.received_invites_list in
       let invited = int_list_to_string g.invited_groups_list in
@@ -100,8 +117,7 @@ let rec invites g =
       if update = "-1" then
         (print_string "Updating server unsuccessful, try again.\n";
         invites g)
-      else print_endline "returning to groups"
-
+      else ()
 
 let swipe g = failwith "undefined"
 
