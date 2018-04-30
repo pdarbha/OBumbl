@@ -1,0 +1,10 @@
+#directory "_build";;
+#require "nethttpd";;
+#require "ocamlnet";;
+#require "nethttp";;
+#require "netstring";;
+#require "netclient";;
+#require "nethttpd";;
+#open "Nethttp._client.Convenience"
+#use "group.cmo";;
+#use "profile.cmo";;
