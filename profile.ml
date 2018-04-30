@@ -131,6 +131,12 @@ let edit p field new_val =
   |"github_url" -> {p with github_url = new_val}
   | _ -> failwith "Must enter a valid field of profile to edit"
 
+let add_group p group_id =
+  edit p "group_id_list" (int_list_to_string (group_id::p.group_id_list))
+
+let remove_group p group_id =
+  edit p "group_id_list" (int_list_to_string (List.filter (fun i -> i <> group_id) p.group_id_list))
+
 (* Query server and pull profile json from server, convert to profile type *)
 let lookup_profile id =
   let jsonProfileString = Nethttp_client.Convenience.http_get ("http://18.204.146.26/obumbl/get_profile.php?user_id=" ^ (string_of_int id)) in
