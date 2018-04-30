@@ -37,21 +37,25 @@ let pull_group_data p =
   List.map (fun id -> lookup_group id) group_int_list
 
 let rec repl p group_list =
+  show_groups group_data;
   let resp = print_read "Enter \"about\", \"invites\", or \"swipe\", followed by a group's project code, to see the respective information, \"new group\" to create a new group, or \"exit\" to quit: " in
-  match (String.split_on_char ' ' resp) with
-  | "new"::"group"::[] ->
-  | "exit"::[] -> print_string "Thanks for using OBumbl!"
-  | c::x::[] ->
-    let g = find_group_by_code x group_list in
-    (match g with
-    | None -> print_string "Invalid group code provided.\n"
-    | Some grp -> match c with
-      | "about" -> about_group grp
-      | "invites" -> invites grp
-      | "swipe" -> swipe grp
-      | "leave" -> leave p grp
-    ); repl p group_list
-  | _ -> print_string "Invalid response. Try again.\n"; repl p group_list
+  if resp = "exit" then
+    print_string "Thanks for using OBumbl!"
+  else
+    (match (String.split_on_char ' ' resp) with
+    | "new"::"group"::[] -> create_group p
+    | c::x::[] ->
+      let g = find_group_by_code x group_list in
+      match g with
+      | None -> print_string "Invalid group code provided.\n"
+      | Some g' -> match c with
+        | "about" -> about_group g'
+        | "invites" -> invites g'
+        | "swipe" -> swipe g'
+        | "leave" -> leave p g'
+    | _ -> print_string "Invalid response. Try again.\n");
+    let p' = lookup_profile (user_id p) in
+    repl p' (pull_group_data p')
 
 (* *)
 let () =
@@ -63,5 +67,4 @@ let () =
   (if (fst lr) = Register then create_profile user_id else ());
     let user_profile = lookup_profile user_id in
     let group_data = pull_group_data user_profile in
-    show_groups group_data;
     repl user_profile group_data
