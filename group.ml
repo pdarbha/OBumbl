@@ -103,7 +103,7 @@ let rec invites g =
       delete_group g;
       let acceptedGroupOpt = find_group_by_id (int_of_string x) inviting_groups in
       (match acceptedGroupOpt with
-        | None -> print_endline "Invalid group id."; invites g 
+        | None -> print_endline "Invalid group id."; invites g
         | Some acceptedGroup ->
           (delete_group acceptedGroup;
           let profile_union = List.map (fun id -> lookup_profile id) ((g.user_id_list)@(acceptedGroup.user_id_list)) in
@@ -127,7 +127,64 @@ let rec invites g =
       else ()
     | _ -> print_endline "Invalid response. Try again."; invites g
 
-let swipe g = failwith "undefined"
+let show_group_in_swipes g other =
+  let max_can_take_in = snd(g.range) - (g.size) in
+  if other.group_id = g.group_id then false
+  else if other.size > max_can_take_in then false
+  else if List.mem (other.group_id) (g.blacklist) then false
+  else if List.mem (other.group_id) (g.invited_groups_list) then false
+  else true
+
+let get_groups_with_purpose g =
+  let purpose = g.purpose in
+  let json_string = Nethttp_client.Convenience.http_get ("http://18.204.146.26/obumbl/download_group.php?purpose=" ^ purpose) in
+  let json_list = from_string json_string|>to_list in
+  let group_list = List.map (init_group) json_list in
+  List.filter (show_group_in_swipes g) group_list
+
+(* takes in an accumulator (usually [] in the beginning) and list and returns a
+   key value pair list with keys being elements of list and frequency an integer *)
+let rec create_key_freq_list acc= function
+  |[] -> acc
+  |h::t -> if List.mem_assoc h acc then
+           let old_freq = List.assoc h acc in
+           let new_acc = (h,old_freq+.1.0)::(List.remove_assoc h acc) in
+           create_key_freq_list new_acc t
+           else create_key_freq_list ((h,1.0)::acc) t
+
+let rec interests_sum acc other = function
+  |[] -> acc
+  |(i,f)::t -> if List.mem_assoc i other then
+               let other_freq = List.assoc i other then
+               interests_sum (acc +. (f *. other_freq)) other t
+               else interests_sum acc other t
+
+let interests_score g other =
+  let group_profiles = List.map (lookup_profile) (g.user_id_list) in
+  let other_profiles = List.map (lookup_profile) (other.user_id_list) in
+  let group_interests = List.flatten (List.map (fun p -> p.interest_list) group_profiles) in
+  let group_interests_freq = create_key_freq_list [] group_interests in
+  let group_interests_freq_norm = List.map (fun (k,v) -> (k,v/.(float (g.size)))) group_interests_freq in
+  let other_interests = List.flatten (List.map (fun p -> p.interest_list) other_profiles) in
+  let other_interests_freq = create_key_freq_list [] other_interests in
+  let other_interests_freq_norm = List.map (fun (k,v) -> (k,v/.(float (other.size)))) other_interests_freq in
+  (interests_sum 0.0 other_interests_freq_norm group_interests_freq_norm)/.(float (List.length group_interests))
+
+let total_score g other =
+  let interest_weight = 1.0 in
+  let looking_for_weight = 1.0 in
+  (interest_weight *. (interests_score g other)) +. (looking_for_weight *. (score_determination g other))
+
+let swipe g =
+  let groups_to_be_matched = get_groups_with_purpose g in
+  let sorted = List.sort (fun g1 g2 -> if (total_score g g1)<(total_score g g2) then 1
+                          else if (total_score g g1)>(total_score g g2) then -1 else 0) groups_to_be_matched in
+  let rec swipe_repl g others =
+    match others with
+    |[] -> print_string "There are no more groups to swipe on; returning to previous page"
+    |h::t ->
+
+
 
 let rec leave p g =
   let updated_user_ids = (List.filter (fun x -> x<>(user_id p)) g.user_id_list) in

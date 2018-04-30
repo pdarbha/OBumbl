@@ -1,5 +1,6 @@
-(*open Yojson.Basic
-open Yojson.Basic.Util*)
+open Yojson.Basic
+open Yojson.Basic.Util
+open Netencoding.Url
 
 (* Limitations -- ** sanitize/escape all inputs before pushing to server **
 * Name - 64 char (full name) -- alphanumeric + spaces
