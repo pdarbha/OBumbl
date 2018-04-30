@@ -91,6 +91,7 @@ let about_group g =
   print_string ("Group for " ^ g.purpose ^ " (ID " ^ (string_of_int g.group_id) ^ "):\nMembers (" ^ (string_of_int g.size) ^ "[min " ^ (string_of_int (fst g.range)) ^ ", max " ^ (string_of_int (snd g.range)) ^ "] ):\n");
   List.iter (fun p -> about_profile p) users
 
+(* to do: check if the invite is still valid*)
 let rec invites g =
   if g.received_invites_list = [] then
     print_endline "You have no invitations."
@@ -170,40 +171,6 @@ let interests_score g other =
   let other_interests_freq_norm = List.map (fun (k,v) -> (k,v/.(float (other.size)))) other_interests_freq in
   (interests_sum 0.0 other_interests_freq_norm group_interests_freq_norm)/.(float (List.length group_interests))
 
-let total_score g other =
-  let interest_weight = 1.0 in
-  let looking_for_weight = 1.0 in
-  (interest_weight *. (interests_score g other)) +. (looking_for_weight *. (score_determination g other))
-
-let swipe g =
-  let groups_to_be_matched = get_groups_with_purpose g in
-  let sorted = List.sort (fun g1 g2 -> if (total_score g g1)<(total_score g g2) then 1
-                          else if (total_score g g1)>(total_score g g2) then -1 else 0) groups_to_be_matched in
-  let rec swipe_repl g others =
-    match others with
-    |[] -> print_string "There are no more groups to swipe on; returning to previous page"
-    |h::t ->
-
-
-
-let rec leave p g =
-  let updated_user_ids = (List.filter (fun x -> x<>(user_id p)) g.user_id_list) in
-  let updated_users = int_list_to_string updated_user_ids in
-  let range_min = string_of_int (fst (g.range)) in
-  let range_max = string_of_int (snd (g.range)) in
-  let blacklist = int_list_to_string g.group_blacklist in
-  let received = int_list_to_string g.received_invites_list in
-  let invited = int_list_to_string g.invited_groups_list in
-  let params = [("user_id_list", updated_users);("purpose", g.purpose);("size",string_of_int (g.size - 1));("range_min", range_min);
-                ("range_max", range_max);("group_blacklist",blacklist);("invited_groups_list",invited);("received_invites_list",received)] in
-  let update = (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/insert_group.php" params) in
-  if update = "-1" then
-    (print_string "Updated group could not be created, try again.\n";
-    leave p g)
-  else
-    let updated_profiles = List.map (fun x -> lookup_profile x) updated_user_ids in
-    List.iter (fun x -> ignore (update_server (add_group x (int_of_string update)))) updated_profiles;
-    delete_group g
 
 let rec uniqify_list lst nlst =
   match lst with
@@ -240,3 +207,43 @@ let sort_function kv1 kv2 =
 
 let sort_tup_list lst nlst =
   List.rev (List.sort sort_function lst)
+
+let total_score g other =
+  let interest_weight = 1.0 in
+  let looking_for_weight = 1.0 in
+  (interest_weight *. (interests_score g other)) +. (looking_for_weight *. (score_determination g other))
+
+let swipe g =
+  let groups_to_be_matched = get_groups_with_purpose g in
+  let sorted = List.sort (fun g1 g2 -> if (total_score g g1)<(total_score g g2) then 1
+                          else if (total_score g g1)>(total_score g g2) then -1 else 0) groups_to_be_matched in
+  let rec swipe_repl g others =
+    match others with
+    |[] -> print_string "There are no more groups to swipe on; returning to previous page"
+    |h::t ->
+      print_endline (group_to_string h);
+      let s = print_read "Enter \"about\", \"left\", \"right\", or \"done\"" in
+      match (String.split_on_char ' ' s) with
+      |"about"::t -> about_group h; swipe_repl g others
+      |"left"::t ->
+      |"right"::t ->
+      |"done"::t -> print_string "returning to previous page"
+
+let rec leave p g =
+  let updated_user_ids = (List.filter (fun x -> x<>(user_id p)) g.user_id_list) in
+  let updated_users = int_list_to_string updated_user_ids in
+  let range_min = string_of_int (fst (g.range)) in
+  let range_max = string_of_int (snd (g.range)) in
+  let blacklist = int_list_to_string g.group_blacklist in
+  let received = int_list_to_string g.received_invites_list in
+  let invited = int_list_to_string g.invited_groups_list in
+  let params = [("user_id_list", updated_users);("purpose", g.purpose);("size",string_of_int (g.size - 1));("range_min", range_min);
+                ("range_max", range_max);("group_blacklist",blacklist);("invited_groups_list",invited);("received_invites_list",received)] in
+  let update = (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/insert_group.php" params) in
+  if update = "-1" then
+    (print_string "Updated group could not be created, try again.\n";
+    leave p g)
+  else
+    let updated_profiles = List.map (fun x -> lookup_profile x) updated_user_ids in
+    List.iter (fun x -> ignore (update_server (add_group x (int_of_string update)))) updated_profiles;
+    delete_group g
