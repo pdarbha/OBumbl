@@ -52,6 +52,9 @@ let rec create_group p =
 let group_to_string g =
   "Project code : "^g.purpose^"\nMinimum size: "^fst(g.range)^"\nMaximum size: "^snd(g.range)^"\n"
 
+let find_group_by_code purpose group_list =
+  List.find_opt (fun group -> group.purpose = purpose) group_list
+
 let show_groups group_list =
   print_endline "Your groups are:";
   List.iter (fun g -> print_endline (group_to_string g)) group_list
@@ -71,6 +74,11 @@ let union g1 g2 =
       (print_string "Group could not be created, try again.\n";
       create_group p)
     else (lookup_group (int_of_string update))
+
+let about_group g =
+  let users = List.map (fun id -> lookup_profile id) g.user_id_list in
+  print_string "Group for " ^ g.purpose ^ ":\nMembers (" ^ g.size ^ "[min " ^ g.range_min ^ ", max " ^ g.range_max ^ "] ):\n";
+  List.iter (fun p -> about_profile p) users
 
 let rec invites g =
   if g.invites = [] then () else

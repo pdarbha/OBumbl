@@ -164,3 +164,11 @@ let rec create_profile id =
   else
     (print_string "Invalid information, please enter your details again.\n";
     create_profile id)
+
+let about_profile p =
+  print_endline (p.name ^ " (" ^ p.school ^ ")");
+  print_endline ("Description: " ^ p.description);
+  print_string ("Interested in: " ^ List.fold_right (fun a b -> a ^ "; " ^ b) p.interest_list "");
+  print_string ("Experience: " ^ (exp_to_string p.experience));
+  print_endline ("Role: " ^ p.role);
+  print_endline ("Github: " ^ p.github_url)
