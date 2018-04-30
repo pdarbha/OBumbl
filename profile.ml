@@ -164,3 +164,6 @@ let rec create_profile id =
   else
     (print_string "Invalid information, please enter your details again.\n";
     create_profile id)
+
+let about_profile p =
+  print_endline p.name (*TODO*)

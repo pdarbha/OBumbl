@@ -35,14 +35,22 @@ let pull_group_data p =
   let group_int_list = groups p in
   List.map (fun id -> lookup_group id) group_int_list
 
-let repl p group_list =
-  let resp = print_read "Enter \"about\", \"invites\", or \"swipe\", followed by the group's project code, to see the respective information or enter \"new group\" to create a new group: " in
+let rec repl p group_list =
+  let resp = print_read "Enter \"about\", \"invites\", or \"swipe\", followed by a group's project code, to see the respective information, \"new group\" to create a new group, or \"exit\" to quit: " in
 match (String.split_on_char ' ' resp) with
-| "about"::x::[] ->
-| "invites"::x::[] ->
-| "swipe"::x::[] ->
 | "new"::"group"::[] ->
-| _ -> ""
+| "exit"::[] -> print_string "Thanks for using OBumbl!"
+| c::x::[] ->
+  let g = find_group_by_code x group_list in
+  (match g with
+  | None -> print_string "Invalid group code provided.\n"
+  | Some grp -> match c with
+    | "about" -> about_group grp
+    | "invites" -> invites grp
+    | "swipe" -> swipe grp
+    | "leave" -> leave p grp
+  ); repl p group_list
+| _ -> print_string "Invalid response. Try again.\n"; repl p group_list
 
 (* *)
 let () =
