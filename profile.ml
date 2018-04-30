@@ -1,5 +1,5 @@
-open Yojson.Basic
-open Yojson.Basic.Util
+(*open Yojson.Basic
+open Yojson.Basic.Util*)
 
 (* Limitations -- ** sanitize/escape all inputs before pushing to server **
 * Name - 64 char (full name) -- alphanumeric + spaces
@@ -121,8 +121,9 @@ let edit p field new_val =
   |"name" -> {p with name = new_val}
   |"photo" -> {p with photo = ref (new_val)}
   |"school" -> {p with school = new_val}
-  |"group_id_list" -> (try {p with group_id_list = List.map (int_of_string) (String.split_on_char ';' new_val)}
-                with _ -> failwith "Tried to give group_id non integer value")
+  |"group_id_list" -> (try
+                        {p with group_id_list = List.map (int_of_string) (String.split_on_char ';' new_val)}
+                      with _ -> failwith "Tried to give group_id non integer value")
   |"description" -> {p with description = new_val}
   |"interest_list" -> {p with interest_list = String.split_on_char ';' new_val}
   |"experience" -> {p with experience = (string_to_exp new_val)}
@@ -145,7 +146,7 @@ let lookup_profile id =
 (* will take in a profile and uploads it to the server and returns true if it is uploaded
  * successfully. Has the side effect of changing information in the server. *)
 let update_server p =
-  let params = [("user_id", string_of_int (p.user_id));("name", (p.name));("photo", (!(p.photo)));("school", (p.school));("group_id_list", int_list_to_string (p.group_id_list));("description", (p.description));("interest_list", list_to_string (p.interest_list));("experience", exp_to_string (p.experience));("role", (p.role));("looking_for", looking_for_to_string (p.looking_for));("github_url", encode_url (p.github_url))] in
+  let params = [("user_id", string_of_int (p.user_id));("name", (p.name));("photo", (!(p.photo)));("school", (p.school));("group_list", (int_list_to_string (p.group_id_list)));("description", (p.description));("interest_list", list_to_string (p.interest_list));("experience", exp_to_string (p.experience));("role", (p.role));("looking_for", looking_for_to_string (p.looking_for));("github_url", encode_url (p.github_url))] in
   let update = (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/insert_profile.php" params) in
   if update = "1" then true
   else false

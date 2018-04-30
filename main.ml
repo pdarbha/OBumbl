@@ -1,5 +1,5 @@
-open Profile
-open Group
+(*open Profile
+open Group*)
 
 type lr_variant = Login | Register
 
@@ -37,13 +37,13 @@ let pull_group_data p =
   List.map (fun id -> lookup_group id) group_int_list
 
 let rec repl p group_list =
-  show_groups group_data;
+  show_groups group_list;
   let resp = print_read "Enter \"about\", \"invites\", or \"swipe\", followed by a group's project code, to see the respective information, \"new group\" to create a new group, or \"exit\" to quit: " in
   if resp = "exit" then
     print_string "Thanks for using OBumbl!"
   else
-    (match (String.split_on_char ' ' resp) with
-    | "new"::"group"::[] -> create_group p
+    ((match (String.split_on_char ' ' resp) with
+    | "new"::"group"::[] -> ignore (create_group p)
     | c::x::[] ->
       let g = find_group_by_code x group_list in
       match g with
@@ -55,7 +55,7 @@ let rec repl p group_list =
         | "leave" -> leave p g'
     | _ -> print_string "Invalid response. Try again.\n");
     let p' = lookup_profile (user_id p) in
-    repl p' (pull_group_data p')
+    repl p' (pull_group_data p'))
 
 (* *)
 let () =
