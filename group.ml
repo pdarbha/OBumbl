@@ -103,7 +103,7 @@ let rec invites g =
       delete_group g;
       let acceptedGroupOpt = find_group_by_id (int_of_string x) inviting_groups in
       (match acceptedGroupOpt with
-        | None -> print_endline "Invalid group id."; invites g 
+        | None -> print_endline "Invalid group id."; invites g
         | Some acceptedGroup ->
           (delete_group acceptedGroup;
           let profile_union = List.map (fun id -> lookup_profile id) ((g.user_id_list)@(acceptedGroup.user_id_list)) in
@@ -147,3 +147,39 @@ let rec leave p g =
     let updated_profiles = List.map (fun x -> lookup_profile x) updated_user_ids in
     List.iter (fun x -> ignore (update_server (add_group x (int_of_string update)))) updated_profiles;
     delete_group g
+
+let rec uniqify_list lst nlst =
+  match lst with
+  |[]->nlst
+  |h::t -> if List.mem h nlst then uniqify_list t nlst else uniqify_list t (h::nlst)
+
+let rec exp_role_tuple grp =
+  List.map (fun x -> ((profile.lookup_profile x).experience, (profile.lookup_profile x).role)) grp.user_id_list
+
+let looking_for_getter grp =
+  let members = grp.user_id_list in
+  List.map (fun x -> (profile.lookup_profile x).looking_for) members
+
+let rec score_det lf_grp o_roles =
+  match lf_grp with
+  |[] -> 0.
+  |h::t -> if List.mem h o_roles then (1. +. score_det t o_roles) else score_det t o_roles
+
+let score_det_helper grp othergrp :float =
+  score_det (uniqify_list (looking_for_getter grp) []) (exp_role_tuple (othergrp))
+
+
+let score_determination my_group other_group : float =
+  let h = score_det_helper my_group other_group in
+  h/. float_of_int other_group.size
+
+let rec matches_list my_group lst_grp =
+  match lst_grp with
+  |[]->[]
+  |h::t -> ((score_determination my_group h), h)::(matches_list my_group t)
+
+let sort_function kv1 kv2 =
+  if fst (kv1) > fst (kv2) then 1 else if fst(kv1) < fst(kv2) then -1 else 0
+
+let sort_tup_list lst nlst =
+  List.rev (List.sort sort_function lst)
