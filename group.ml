@@ -83,7 +83,7 @@ let about_group g =
 let rec invites g =
   if g.invites = [] then () else
     List.iter about_group (g.invites);
-    let resp = print_read "Enter \"accept\" or \"reject\" followed by the group's id to accept or reject the invite respectively or \"back\" to return to the previous page" in
+    let resp = print_read "Enter \"accept\" or \"reject\" followed a group's code, or \"back\" to return to the previous page: " in
     match (String.split_on_char ' ' resp) with
     |"accept"::x::[] -> failwith "every profile must be updated now"
     |"reject"::x::[] ->
@@ -97,3 +97,7 @@ let rec invites g =
         (print_string "Updating server unsuccessful, try again.\n";
         invites g)
       else ()
+
+let swipe g = failwith "undefined"
+
+let leave p g = failwith "undefined"
