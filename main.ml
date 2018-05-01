@@ -43,7 +43,9 @@ let rec repl p group_list =
     print_string "Thanks for using OBumbl!"
   else
     ((match (String.split_on_char ' ' resp) with
-    | "new"::"group"::[] -> ignore (create_group p)
+    | "new"::"group"::[] ->
+      let purpose_list = List.map (fun g -> purpose g) group_list in
+      ignore (create_group p purpose_list)
     | c::x::[] ->
       let g = find_group_by_code x group_list in
       match g with
@@ -64,7 +66,7 @@ let () =
   if user_id = -1 then
     failwith ((match fst lr with Login -> "Login" | Register -> "Register") ^ " unsuccessful.")
   else
-  (if (fst lr) = Register then create_profile user_id else ());
+    (if (fst lr) = Register then create_profile user_id else ());
     let user_profile = lookup_profile user_id in
     let group_data = pull_group_data user_profile in
     repl user_profile group_data
