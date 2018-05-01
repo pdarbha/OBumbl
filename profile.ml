@@ -159,11 +159,11 @@ let print_read s =
   let () = print_string s in
   read_line()
 
-let rec cp_looking_for =
+let rec cp_looking_for ()=
   let lf_role = print_read "Please enter a role you are looking for on your team or type \"done\"? " in
   if String.lowercase_ascii (String.trim lf_role) = "done" then []
   else let lf_exp = print_read "Are you looking for a beginner (BEG), intermediate (INT), or advanced (ADV) " ^ lf_role ^ " ? " in
-  (string_to_exp lf_exp, lf_role)::cp_looking_for
+  (string_to_exp lf_exp, lf_role)::cp_looking_for ()
 
 let rec create_profile id =
   let n = print_read "Enter your full name: " in
@@ -172,7 +172,7 @@ let rec create_profile id =
   let interests = print_read "Enter your interests (semi-colon seperated): " in
   let exp = print_read "Are you a beginner (BEG), intermediate (INT), or advanced (ADV) computer scientist? " in
   let r = print_read "What is your typical role on a team? " in
-  let lf = cp_looking_for in
+  let lf = cp_looking_for () in
   let github = print_read "What's your github URL? " in
   let prof = {user_id = id; name = n; photo = ref ""; school = s; group_id_list = []; description = d; interest_list = (split_to_string_list interests); experience = (string_to_exp exp); role = r; looking_for = lf; github_url = github} in
   if (update_server prof)

@@ -132,7 +132,7 @@ let show_group_in_swipes g other =
   let max_can_take_in = snd(g.range) - (g.size) in
   if other.group_id = g.group_id then false
   else if other.size > max_can_take_in then false
-  else if List.mem (other.group_id) (g.blacklist) then false
+  else if List.mem (other.group_id) (g.group_blacklist) then false
   else if List.mem (other.group_id) (g.invited_groups_list) then false
   else true
 
@@ -156,7 +156,7 @@ let rec create_key_freq_list acc= function
 let rec interests_sum acc other = function
   |[] -> acc
   |(i,f)::t -> if List.mem_assoc i other then
-               let other_freq = List.assoc i other then
+               let other_freq = List.assoc i other in
                interests_sum (acc +. (f *. other_freq)) other t
                else interests_sum acc other t
 
@@ -178,11 +178,15 @@ let rec uniqify_list lst nlst =
   |h::t -> if List.mem h nlst then uniqify_list t nlst else uniqify_list t (h::nlst)
 
 let rec exp_role_tuple grp =
-  List.map (fun x -> ((profile.lookup_profile x).experience, (profile.lookup_profile x).role)) grp.user_id_list
+  List.map (fun x -> ((lookup_profile x).experience, (lookup_profile x).role)) grp.user_id_list
 
-let looking_for_getter grp =
-  let members = grp.user_id_list in
-  List.map (fun x -> (profile.lookup_profile x).looking_for) members
+let rec looking_for_getter grpids =
+  match grpids with
+  |[]->[]
+  |h::t->(lookup_profile h).looking_for @ (looking_for_getter t)
+
+  (*let members = grp.user_id_list in
+  List.map (fun x -> (lookup_profile x).looking_for) members*)
 
 let rec score_det lf_grp o_roles =
   match lf_grp with
@@ -190,7 +194,7 @@ let rec score_det lf_grp o_roles =
   |h::t -> if List.mem h o_roles then (1. +. score_det t o_roles) else score_det t o_roles
 
 let score_det_helper grp othergrp :float =
-  score_det (uniqify_list (looking_for_getter grp) []) (exp_role_tuple (othergrp))
+  score_det (uniqify_list (looking_for_getter grp.user_id_list) []) (exp_role_tuple (othergrp))
 
 
 let score_determination my_group other_group : float =
@@ -225,9 +229,10 @@ let swipe g =
       let s = print_read "Enter \"about\", \"left\", \"right\", or \"done\"" in
       match (String.split_on_char ' ' s) with
       |"about"::t -> about_group h; swipe_repl g others
-      |"left"::t ->
-      |"right"::t ->
-      |"done"::t -> print_string "returning to previous page"
+      |"left"::t -> failwith "not done"
+      |"right"::t -> failwith "not done"
+      |"done"::t -> failwith "not done" in
+  swipe_repl g sorted
 
 let rec leave p g =
   let updated_user_ids = (List.filter (fun x -> x<>(user_id p)) g.user_id_list) in
