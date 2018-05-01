@@ -229,15 +229,23 @@ let swipe g =
                           else if (total_score g g1)>(total_score g g2) then -1 else 0) groups_to_be_matched in
   let rec swipe_repl g others =
     match others with
-    |[] -> print_string "There are no more groups to swipe on; returning to previous page"
+    |[] -> print_endline "There are no more groups to swipe on; returning to previous page"
     |h::t ->
       print_endline (group_to_string h);
       let s = print_read "Enter \"about\", \"left\", \"right\", or \"done\"" in
       match (String.split_on_char ' ' s) with
       |"about"::t -> about_group h; swipe_repl g others
-      |"left"::t -> failwith "not done"
+      |"left"::t ->
+        let blacklist = (h.group_id)::(g.group_blacklist) in
+        let blacklist_str = int_list_to_string blacklist in
+        let received = int_list_to_string (g.received_invites_list) in
+        let invited = int_list_to_string (g.invited_groups_list) in
+        let params = [("group_id", (string_of_int g.group_id));("group_blacklist",blacklist_str);("received_invites_list",received);("invited_groups_list",invited)] in
+        let update = (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/update_group_lists.php" params) in
+        swipe_repl {g with group_blacklist = blacklist} t
       |"right"::t -> failwith "not done"
-      |"done"::t -> failwith "not done" in
+      |"done"::t -> print_endline "Returning to previous page"
+      | _ -> print_endline "Not a valid command."; swipe_repl g others in
   swipe_repl g sorted
 
 let rec leave p g =
