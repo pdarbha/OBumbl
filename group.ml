@@ -236,7 +236,13 @@ let swipe g =
       match (String.split_on_char ' ' s) with
       |"about"::t -> about_group h; swipe_repl g others
       |"left"::t -> failwith "not done"
-      |"right"::t -> failwith "not done"
+      |"right"::t ->
+        let g' = {g with invited_groups_list = (h.group_id)::g.invited_groups_list} in
+        let params_h = [("group_id", string_of_int (h.group_id)),("group_blacklist", int_list_to_string h.group_blacklist),("invited_groups_list", int_list_to_string (h.invited_groups_list)),("received_invites_list", int_list_to_string ((g.group_id)::(h.received_invites_list)))] in
+        let update_h = (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/update_group_lists.php" params_h) in
+        let params_g = [("group_id", string_of_int (g.group_id)),("group_blacklist", int_list_to_string g.group_blacklist),("invited_groups_list", int_list_to_string (g'.invited_groups_list)),("received_invites_list", int_list_to_string (g.received_invites_list))] in
+        let update_g = (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/update_group_lists.php" params_g) in
+        swipe_repl g' t
       |"done"::t -> failwith "not done" in
   swipe_repl g sorted
 
