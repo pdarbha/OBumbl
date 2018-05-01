@@ -31,18 +31,13 @@ let string_to_exp s =
   if s = "BEG" then `BEG
   else if s = "INT" then `INT
   else if s = "ADV" then `ADV
-  else failwith "Experience must be \"BEG\", \"INT\", or \"ADV\""
+  else failwith ("Was given \"" ^ s ^ "\" but experience must be \"BEG\", \"INT\", or \"ADV\"")
 
 let string_to_looking_for s =
-  List.map (fun el -> (string_to_exp (String.sub el 0 3), String.sub el 4 ((String.length el)-4))) (split_to_string_list s)
-(*
-Used to remove escaped quotation marks when that is what the JSON has,
-not necessary though.
-let to_string_trimmed j field=
-  let s = j|>member field|>to_string in
-  if String.length s <2 then "" else
-  (String.sub s 1 (String.length s -2))
-*)
+  if s = "" then []
+  else let lfList = split_to_string_list (String.sub s 0 ((String.length s)-1)) in
+  let validLfList = List.filter (fun s -> (String.length s) > 4) lfList in
+  List.map (fun el -> (string_to_exp (String.sub el 0 3), String.sub el 4 ((String.length el)-4))) validLfList
 
 (* will take in Json file and parse it and store that information in an object of type profile *)
 let init_profile j =
@@ -100,7 +95,8 @@ let list_to_string l=
   match l with
   | [] -> ""
   | _ -> let s = List.fold_left (fun s1 s2 -> s1^";"^s2) "" l in
-         String.sub s 1 ((String.length s)-1)
+        if s = "" then ""
+        else String.sub s 1 ((String.length s)-1)
 
 let int_list_to_string l =
   let l' = List.map (string_of_int) l in
@@ -162,7 +158,7 @@ let print_read s =
 let rec cp_looking_for ()=
   let lf_role = print_read "Please enter a role you are looking for on your team or type \"done\"? " in
   if String.lowercase_ascii (String.trim lf_role) = "done" then []
-  else let lf_exp = print_read "Are you looking for a beginner (BEG), intermediate (INT), or advanced (ADV) " ^ lf_role ^ " ? " in
+  else let lf_exp = print_read ("Are you looking for a beginner (BEG), intermediate (INT), or advanced (ADV) " ^ lf_role ^ " ? ") in
   (string_to_exp lf_exp, lf_role)::cp_looking_for ()
 
 let rec create_profile id =

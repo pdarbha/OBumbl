@@ -6,7 +6,7 @@ type group = {group_id : int; user_id_list: int list; purpose : string; size : i
               range : (int * int); group_blacklist : int list;
               invited_groups_list : int list; received_invites_list : int list}
 
-let empty_group = {group_id =-1; user_id_list = []; purpose = ""; size = 0;
+let empty_group = {group_id = -1; user_id_list = []; purpose = ""; size = 0;
               range = (0,0); group_blacklist = []; invited_groups_list = [];
               received_invites_list = []}
 
@@ -37,21 +37,23 @@ let lookup_group id =
   if jsonGroupString = "-1" then empty_group else
   init_group (from_string jsonGroupString)
 
-let rec create_group p =
+let rec create_group p purpose_list =
   let purpose = print_read "Enter project code: " in
   if String.contains purpose ' ' then
-    (print_string "Invalid project code.\n"; create_group p)
+    (print_string "Invalid project code.\n"; create_group p purpose_list)
+  else if List.mem purpose purpose_list then
+    (print_string "Already have a group for that project code.\n"; create_group p purpose_list)
   else
     let range_min = print_read "Enter minimum desired group size: " in
     let range_max = print_read "Enter maximum desired group size: " in
     if ((int_of_string range_min) > (int_of_string range_max) || (int_of_string range_max) < 0) then
-      (print_string "Make sure your max size is greater than 0 and greater than or equal to min size.\n"; create_group p)
+      (print_string "Make sure your max size is greater than 0 and greater than or equal to min size.\n"; create_group p purpose_list)
     else
       let params = [("user_id_list", string_of_int (user_id p));("purpose", purpose);("size","1");("range_min", range_min);("range_max", range_max);("group_blacklist","");("invited_groups_list","");("received_invites_list","")] in
       let update = (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/insert_group.php" params) in
       if update = "-1" then
         (print_string "Group could not be created, try again.\n";
-        create_group p)
+        create_group p purpose_list)
       else
         let group_id = (int_of_string update) in
         update_server (add_group p group_id); (lookup_group group_id)
@@ -72,6 +74,8 @@ let show_groups group_list =
 let size g = g.size
 
 let range g = g.range
+
+let purpose g = g.purpose
 
 let union g1 g2 =
   let users = int_list_to_string ((g1.user_id_list)@(g2.user_id_list)) in
@@ -144,7 +148,7 @@ let show_group_in_swipes g other =
 
 let get_groups_with_purpose g =
   let purpose = g.purpose in
-  let json_string = Nethttp_client.Convenience.http_get ("http://18.204.146.26/obumbl/download_group.php?purpose=" ^ purpose) in
+  let json_string = Nethttp_client.Convenience.http_get ("http://18.204.146.26/obumbl/download_groups.php?purpose=" ^ purpose) in
   let json_list = from_string json_string|>to_list in
   let group_list = List.map (init_group) json_list in
   List.filter (show_group_in_swipes g) group_list
@@ -223,8 +227,8 @@ let swipe g =
       print_endline (group_to_string h);
       let s = print_read "Enter \"about\", \"left\", \"right\", or \"done\"" in
       match (String.split_on_char ' ' s) with
-      |"about"::t -> about_group h; swipe_repl g others
-      |"left"::t ->
+      |"about"::_ -> about_group h; swipe_repl g others
+      |"left"::_ ->
         let blacklist = (h.group_id)::(g.group_blacklist) in
         let blacklist_str = int_list_to_string blacklist in
         let received = int_list_to_string (g.received_invites_list) in
@@ -232,10 +236,16 @@ let swipe g =
         let params = [("group_id", (string_of_int g.group_id));("group_blacklist",blacklist_str);("received_invites_list",received);("invited_groups_list",invited)] in
         let update = (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/update_group_lists.php" params) in
         swipe_repl {g with group_blacklist = blacklist} t
-      |"right"::t -> failwith "not done"
-      |"done"::t -> print_endline "Returning to previous page"
+      |"right"::_ ->
+        let g' = {g with invited_groups_list = (h.group_id)::g.invited_groups_list} in
+        let params_h = [("group_id", string_of_int (h.group_id));("group_blacklist", int_list_to_string h.group_blacklist);("invited_groups_list", int_list_to_string (h.invited_groups_list));("received_invites_list", int_list_to_string ((g.group_id)::(h.received_invites_list)))] in
+        let update_h = (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/update_group_lists.php" params_h) in
+        let params_g = [("group_id", string_of_int (g.group_id));("group_blacklist", int_list_to_string g.group_blacklist);("invited_groups_list", int_list_to_string (g'.invited_groups_list));("received_invites_list", int_list_to_string (g.received_invites_list))] in
+        let update_g = (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/update_group_lists.php" params_g) in
+        swipe_repl g' t
+      |"done"::_ -> print_endline "Returning to previous page"
       | _ -> print_endline "Not a valid command."; swipe_repl g others in
-  swipe_repl g sorted
+        swipe_repl g sorted
 
 let rec leave p g =
   let updated_user_ids = (List.filter (fun x -> x<>(user_id p)) g.user_id_list) in
