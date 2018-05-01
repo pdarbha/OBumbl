@@ -48,13 +48,13 @@ let rec repl p group_list =
       ignore (create_group p purpose_list)
     | c::x::[] ->
       let g = find_group_by_code x group_list in
-      match g with
+      (match g with
       | None -> print_string "Invalid group code provided.\n"
       | Some g' -> match c with
         | "about" -> about_group g'
         | "invites" -> invites g'
         | "swipe" -> swipe g'
-        | "leave" -> leave p g'
+        | "leave" -> leave p g')
     | _ -> print_string "Invalid response. Try again.\n");
     let p' = lookup_profile (user_id p) in
     repl p' (pull_group_data p'))

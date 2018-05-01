@@ -211,17 +211,6 @@ let score_determination my_group other_group : float =
   let h = score_det_helper my_group other_group in
   h/. float_of_int other_group.size
 
-let rec matches_list my_group lst_grp =
-  match lst_grp with
-  |[]->[]
-  |h::t -> ((score_determination my_group h), h)::(matches_list my_group t)
-
-let sort_function kv1 kv2 =
-  if fst (kv1) > fst (kv2) then 1 else if fst(kv1) < fst(kv2) then -1 else 0
-
-let sort_tup_list lst nlst =
-  List.rev (List.sort sort_function lst)
-
 let total_score g other =
   let interest_weight = 1.0 in
   let looking_for_weight = 1.0 in

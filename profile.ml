@@ -121,6 +121,7 @@ let edit p field new_val =
   |"name" -> {p with name = new_val}
   |"photo" -> {p with photo = ref (new_val)}
   |"school" -> {p with school = new_val}
+  |"group_id_list" when new_val = "" -> {p with group_id_list = []}
   |"group_id_list" -> (try
                         {p with group_id_list = List.map (int_of_string) (String.split_on_char ';' new_val)}
                       with _ -> failwith "Tried to give group_id non integer value")
