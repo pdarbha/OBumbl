@@ -140,8 +140,10 @@ let rec invites g =
 
 let show_group_in_swipes g other =
   let max_can_take_in = snd(g.range) - (g.size) in
+  let max_other_can_take_in = snd(other.range) - (other.size) in
   if other.group_id = g.group_id then false
   else if other.size > max_can_take_in then false
+  else if g.size > max_other_can_take_in then false
   else if List.mem (other.group_id) (g.group_blacklist) then false
   else if List.mem (other.group_id) (g.invited_groups_list) then false
   else true
