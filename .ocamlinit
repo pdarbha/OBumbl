@@ -2,8 +2,8 @@
 #require "netstring";;
 #require "netclient";;
 #require "yojson";;
-#open Yojson.Basic;;
-#open Yojson.Basic.Util;;
-#open Nethttp_client.Convenience;;
+open Yojson.Basic;;
+open Yojson.Basic.Util;;
+open Nethttp_client.Convenience;;
 #use "profile.ml";;
 #use "group.ml";;
