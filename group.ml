@@ -6,6 +6,10 @@ type group = {group_id : int; user_id_list: int list; purpose : string; size : i
               range : (int * int); group_blacklist : int list;
               invited_groups_list : int list; received_invites_list : int list}
 
+let empty_group = {group_id =-1; user_id_list = []; purpose = ""; size = 0;
+              range = (0,0); group_blacklist = []; invited_groups_list = [];
+              received_invites_list = []}
+
 let print_read s =
   let () = print_string s in
   read_line()
@@ -30,6 +34,7 @@ let init_group j =
 
 let lookup_group id =
   let jsonGroupString = Nethttp_client.Convenience.http_get ("http://18.204.146.26/obumbl/get_group.php?group_id=" ^ (string_of_int id)) in
+  if jsonGroupString = "-1" then empty_group else
   init_group (from_string jsonGroupString)
 
 let rec create_group p =
@@ -97,16 +102,17 @@ let rec invites g =
     print_endline "You have no invitations."
   else
     let inviting_groups = List.map (fun id -> lookup_group id) g.received_invites_list in
-    List.iter about_group inviting_groups;
+    let invites_no_empty = List.filter (fun g -> g.group_id <> -1) inviting_groups in
+    List.iter about_group invites_no_empty;
     let resp = print_read "Enter \"accept\" or \"reject\" followed a group's id, or \"back\" to return to the previous page: " in
     match (String.split_on_char ' ' resp) with
     | "accept"::x::[] ->
-      delete_group g;
-      let acceptedGroupOpt = find_group_by_id (int_of_string x) inviting_groups in
+      let acceptedGroupOpt = find_group_by_id (int_of_string x) invites_no_empty in
       (match acceptedGroupOpt with
         | None -> print_endline "Invalid group id."; invites g
         | Some acceptedGroup ->
-          (delete_group acceptedGroup;
+          (delete_group g;
+          delete_group acceptedGroup;
           let profile_union = List.map (fun id -> lookup_profile id) ((g.user_id_list)@(acceptedGroup.user_id_list)) in
           let update = union g acceptedGroup in
           if update = -1 then ()
