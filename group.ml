@@ -10,10 +10,12 @@ let empty_group = {group_id = -1; user_id_list = []; purpose = ""; size = 0;
               range = (0,0); group_blacklist = []; invited_groups_list = [];
               received_invites_list = []}
 
+(*[print_read s] prints string s and then reads a user response*)
 let print_read s =
   let () = print_string s in
   read_line()
 
+(*[init_group j] is a group created by parsing a json [j].*)
 let init_group j =
   let id = j|>member "group_id"|>to_string|>int_of_string in
   let users = let s = j|>member "user_id_list"|>to_string in
@@ -32,11 +34,16 @@ let init_group j =
    range = (range_min,range_max); group_blacklist = blacklist;
    invited_groups_list = invited; received_invites_list = received}
 
+(*[lookup_group id] returns a group. Takes a group id
+  and if associated string found on server will create json of string to be used in
+  call to init_group. Otherwise, returns empty group. *)
 let lookup_group id =
   let jsonGroupString = Nethttp_client.Convenience.http_get ("http://18.204.146.26/obumbl/get_group.php?group_id=" ^ (string_of_int id)) in
   if jsonGroupString = "-1" then empty_group else
   init_group (from_string jsonGroupString)
 
+(*[create_group p] creates a group from a profile p with additional input of
+  purpose, min size, and max size of group from user.*)
 let rec create_group p purpose_list =
   let purpose = print_read "Enter project code: " in
   if String.contains purpose ' ' then
@@ -58,25 +65,39 @@ let rec create_group p purpose_list =
         let group_id = (int_of_string update) in
         update_server (add_group p group_id); (lookup_group group_id)
 
+(*[group_to_string g] is a readable string containing the purpose, minimum size
+  and maximum size of group [g]*)
 let group_to_string g =
   "Project code : "^g.purpose^"\nMinimum size: " ^ (string_of_int (fst (g.range))) ^ "\nMaximum size: "^ (string_of_int (snd (g.range))) ^"\n"
 
+(*[find_group_by_code purpose group_list] is None if no group in group_list has
+  purpose [purpose] and Some group if a group has a matching purpose.
+  Meant to be called on a user's list of groups(for different projects). Because
+  each person can have at most one group per purpose, each group in group_list
+  should have unique purpose*)
 let find_group_by_code purpose group_list =
   List.find_opt (fun group -> group.purpose = purpose) group_list
 
+(*[find_group_by_id id group_list] is None if no group in group_list has
+  an id matching [id] and Some group if a group has a matching id.*)
 let find_group_by_id id group_list =
   List.find_opt (fun group -> group.group_id = id) group_list
 
+(*[show_groups group_list] prints a string version of each group in group_list*)
 let show_groups group_list =
   print_endline "Your groups are:";
   List.iter (fun g -> print_endline (group_to_string g)) group_list
 
+(*[size g] is the size of group [g]*)
 let size g = g.size
 
+(*[range g] is the range of group [g]*)
 let range g = g.range
 
+(*[purpose g] is the purpose of group [g]*)
 let purpose g = g.purpose
 
+(*[union g1 g2] is a new group with updated fields created by merging two groups*)
 let union g1 g2 =
   let users = int_list_to_string ((g1.user_id_list)@(g2.user_id_list)) in
   let size = string_of_int ((g1.size) + (g2.size)) in
@@ -87,6 +108,11 @@ let union g1 g2 =
   if update = "-1" then print_string "Errors occured during group acceptance.\n" else ();
   int_of_string update
 
+(*[delete_group g] deletes group [g] from the server and deletes group from all
+  the profiles that used to have it in their group_id list.
+  returns unit
+
+  potentially update to delete from user's list of groups that have invited them*)
 let delete_group g =
   let profile_list = List.map (fun id -> lookup_profile id) g.user_id_list in
   List.iter (fun p -> ignore (update_server (remove_group p (g.group_id)))) profile_list;
@@ -95,12 +121,19 @@ let delete_group g =
     (print_string "Errors occured during group acceptance.\n";)
   else ()
 
+(*[about_group g] prints a string displaying information about a group and the
+  users in the group*)
 let about_group g =
   let users = List.map (fun id -> lookup_profile id) g.user_id_list in
   print_string ("Group for " ^ g.purpose ^ " (ID " ^ (string_of_int g.group_id) ^ "):\nMembers (" ^ (string_of_int g.size) ^ "[min " ^ (string_of_int (fst g.range)) ^ ", max " ^ (string_of_int (snd g.range)) ^ "] ):\n");
   List.iter (fun p -> about_profile p) users
 
-(* to do: check if the invite is still valid*)
+(*[invites g] helps manage the invites that a group g has received. User can choose to
+  accept or reject an invite or to leave the invite manager screen. Accepting an
+  invite forms a new group, and deletes the user's group and the group they joined.
+  Rejecting an invite blacklists the rejected group and deletes that invite.
+  Going back updates the server to reflect the local user's recent decisions.
+*)
 let rec invites g =
   if g.received_invites_list = [] then
     print_endline "You have no invitations."
@@ -138,6 +171,9 @@ let rec invites g =
       else ()
     | _ -> print_endline "Invalid response. Try again."; invites g
 
+(*[show_group_in_swipes g other] returns true if group [other] meets the
+  requirements to be shown in the groups that g can swipe through and false otherwise
+*)
 let show_group_in_swipes g other =
   let max_can_take_in = snd(g.range) - (g.size) in
   let max_other_can_take_in = snd(other.range) - (other.size) in
@@ -148,6 +184,8 @@ let show_group_in_swipes g other =
   else if List.mem (other.group_id) (g.invited_groups_list) then false
   else true
 
+(*[get_groups_with_purpose g] returns a list of groups with the same purpose as
+  group [g]*)
 let get_groups_with_purpose g =
   let purpose = g.purpose in
   let json_string = Nethttp_client.Convenience.http_get ("http://18.204.146.26/obumbl/download_groups.php?purpose=" ^ purpose) in
@@ -165,6 +203,8 @@ let rec create_key_freq_list acc= function
            create_key_freq_list new_acc t
            else create_key_freq_list ((h,1.0)::acc) t
 
+(*[interests_sum acc other lst] is the sum of the products of the values in lst (which are each
+  frequencies for interests of one group) and the frequency of the interest in the other group*)
 let rec interests_sum acc other = function
   |[] -> acc
   |(i,f)::t -> if List.mem_assoc i other then
@@ -172,6 +212,9 @@ let rec interests_sum acc other = function
                interests_sum (acc +. (f *. other_freq)) other t
                else interests_sum acc other t
 
+(*[interests_score g other] is the summed interest score of groups [g] and [other] divided
+  by the total number of interests of group [g]
+*)
 let interests_score g other =
   let group_profiles = List.map (lookup_profile) (g.user_id_list) in
   let other_profiles = List.map (lookup_profile) (other.user_id_list) in
@@ -183,41 +226,57 @@ let interests_score g other =
   let other_interests_freq_norm = List.map (fun (k,v) -> (k,v/.(float (other.size)))) other_interests_freq in
   (interests_sum 0.0 other_interests_freq_norm group_interests_freq_norm)/.(float (List.length group_interests))
 
-
+(*[uniqify_list lst nlst] is [lst] with all duplicates removed*)
 let rec uniqify_list lst nlst =
   match lst with
   |[]->nlst
   |h::t -> if List.mem h nlst then uniqify_list t nlst else uniqify_list t (h::nlst)
 
+(*[exp_role_tuple grp] is an (experience,role) list generated by finding the desired experience
+  and role for each user in a group*)
 let rec exp_role_tuple grp =
   List.map (fun x -> ((lookup_profile x).experience, (lookup_profile x).role)) grp.user_id_list
 
+(*[looking_for_getter grpids] creates a list of all the desired roles and corresponding Experience
+  level for each member of a group*)
 let rec looking_for_getter grpids =
   match grpids with
   |[]->[]
   |h::t->(lookup_profile h).looking_for @ (looking_for_getter t)
 
-  (*let members = grp.user_id_list in
-  List.map (fun x -> (lookup_profile x).looking_for) members*)
 
+(*[score_det lf_grp o_roles] generates a score based on what a group is looking for
+  and what experience another group has and what roles it can offer*)
 let rec score_det lf_grp o_roles =
   match lf_grp with
   |[] -> 0.
   |h::t -> if List.mem h o_roles then (1. +. score_det t o_roles) else score_det t o_roles
 
+(*[score_det_helper grp othergrp] calls score_det with a unique list of the desired roles/Experience
+  of group [grp] and an (exp,role) list with each users experience and role in othergrp*)
 let score_det_helper grp othergrp :float =
   score_det (uniqify_list (looking_for_getter grp.user_id_list) []) (exp_role_tuple (othergrp))
 
-
+(*[score_determination my_group other_group] is the match score of the desired
+  roles/experiences of group [my_group] and the roles/experiences of the members
+  of group [other_group] divided by the size of [other_group]*)
 let score_determination my_group other_group : float =
   let h = score_det_helper my_group other_group in
   h/. float_of_int other_group.size
 
+(*[total_score g other] is the weighted total match score between a group [g] and
+  another group [other] with higher scores indicating a better match*)
 let total_score g other =
   let interest_weight = 1.0 in
   let looking_for_weight = 1.0 in
   (interest_weight *. (interests_score g other)) +. (looking_for_weight *. (score_determination g other))
 
+(*[swipe g] produces a list of groups that can be swiped through by group g sorted
+  from highest to lowest match score
+
+  [swipe_repl g others] is a repl that allows the user to swipe left(reject) or right(accept)
+  on a group, ask for more information about a group or to finish swiping
+*)
 let swipe g =
   let groups_to_be_matched = get_groups_with_purpose g in
   let sorted = List.sort (fun g1 g2 -> if (total_score g g1)<(total_score g g2) then 1
@@ -249,6 +308,8 @@ let swipe g =
       | _ -> print_endline "Not a valid command."; swipe_repl g others in
         swipe_repl g sorted
 
+(*[leave p g] is a new group formed by re-creating group g except with profile [p]
+  removed. Groups on the server are updated accordingly.*)
 let rec leave p g =
   let updated_user_ids = (List.filter (fun x -> x<>(user_id p)) g.user_id_list) in
   let updated_users = int_list_to_string updated_user_ids in
