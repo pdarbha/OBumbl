@@ -1,0 +1,8 @@
+test:
+	ocamlbuild -use-ocamlfind test.byte && ./test.byte
+
+repl:
+	ocamlbuild -pkg netclient -pkg netstring -pkg yojson -use-ocamlfind main.byte && ./main.byte
+
+clean:
+	ocamlbuild -clean

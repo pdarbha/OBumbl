@@ -5,9 +5,6 @@ type group
    one profile using the profile's id as well as the tag this group corresponds to*)
 val init_group : Yojson.Basic.json -> group
 
-(* will return a sorted list of groups based on a matching algorithm for a single group *)
-val match_order : group -> group list -> group list
-
 (* will return the size of a group *)
 val size : group -> int
 
@@ -15,7 +12,7 @@ val size : group -> int
 val range : group -> int*int
 
 (* will join two groups to form a larger group *)
-val union : group -> group -> group
+val union : group -> group -> int
 
 (* will print purpose, min size, and max size for each group in a group list *)
 val show_groups: group list -> unit
@@ -34,4 +31,12 @@ val swipe: group -> unit
 
 
 (*[leave p g] creates a new group without user who decided to leave. Leaving a group deletes the tag associated with the project for the leaving user. User must make a new tag to create group for that purpose*)
-val leave: profile -> group -> unit
+val leave: Profile.profile -> group -> unit
+
+val lookup_group: int -> group
+
+val purpose : group -> string
+
+val create_group : Profile.profile -> string list -> group
+
+val find_group_by_code : string -> group list -> group option

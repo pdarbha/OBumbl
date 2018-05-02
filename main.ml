@@ -1,5 +1,5 @@
-(*open Profile
-open Group*)
+open Profile
+open Group
 
 type lr_variant = Login | Register
 

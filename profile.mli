@@ -17,7 +17,7 @@ val photo : profile -> string
 val school : profile -> string
 
 (* will return a list of a user’s tags *)
-val groups : profile -> Group.group list
+val groups : profile -> int list
 
 (* will return a user’s description *)
 val description : profile -> string
@@ -32,7 +32,7 @@ val interests : profile -> string list
 val role : profile -> string
 
 (* will return a tuple of experience as variant and role as string that user is looking for *)
-val looking_for : profile -> ([ `BEG | `INT | `ADV ]*string)
+val looking_for : profile -> ([ `BEG | `INT | `ADV ]*string) list
 
  (* will return a string to a github.com profile URL *)
 val github : profile -> string
@@ -45,4 +45,16 @@ val lookup_profile : int -> profile
 
 (* will take in a profile and uploads it to the server and returns true if it is uploaded
  * successfully. Has the side effect of changing information in the server. *)
-val update_server : profile -> boolean
+val update_server : profile -> bool
+
+val print_read : string -> string
+
+val create_profile : int -> unit
+
+val add_group : profile -> int -> profile
+
+val remove_group : profile -> int -> profile
+
+val int_list_to_string : int list -> string
+
+val about_profile : profile -> unit
