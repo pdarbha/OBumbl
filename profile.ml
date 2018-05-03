@@ -28,10 +28,9 @@ let decode_url u = Netencoding.Url.decode u
 let split_to_string_list str = String.split_on_char ';' str
 
 let string_to_exp s =
-  if s = "BEG" then `BEG
-  else if s = "INT" then `INT
+  if s = "INT" then `INT
   else if s = "ADV" then `ADV
-  else failwith ("Was given \"" ^ s ^ "\" but experience must be \"BEG\", \"INT\", or \"ADV\"")
+  else `BEG
 
 let string_to_looking_for s =
   if s = "" then []
@@ -108,6 +107,12 @@ let exp_to_string e =
   |`INT -> "INT"
   |`ADV -> "ADV"
 
+let exp_print_string e =
+  match e with
+  |`BEG -> "Beginner"
+  |`INT -> "Intermediate"
+  |`ADV -> "Advanced"
+
 let rec looking_for_to_string lf =
   match lf with
   | [] -> ""
@@ -139,11 +144,6 @@ let add_group p group_id =
 let remove_group p group_id =
   edit p "group_id_list" (int_list_to_string (List.filter (fun i -> i <> group_id) p.group_id_list))
 
-(* Query server and pull profile json from server, convert to profile type *)
-let lookup_profile id =
-  let jsonProfileString = Nethttp_client.Convenience.http_get ("http://18.204.146.26/obumbl/get_profile.php?user_id=" ^ (string_of_int id)) in
-  init_profile (from_string jsonProfileString)
-
 (* will take in a profile and uploads it to the server and returns true if it is uploaded
  * successfully. Has the side effect of changing information in the server. *)
 let update_server p =
@@ -154,34 +154,54 @@ let update_server p =
 
 let print_read s =
   let () = print_string s in
-  read_line()
+  read_line () |> String.trim
 
 let rec cp_looking_for ()=
-  let lf_role = print_read "Please enter a role you are looking for on your team or type \"done\"? " in
+  let lf_role = print_read "Please enter a role you are looking for on your team or type \"done\": " in
   if String.lowercase_ascii (String.trim lf_role) = "done" then []
   else let lf_exp = print_read ("Are you looking for a beginner (BEG), intermediate (INT), or advanced (ADV) " ^ lf_role ^ " ? ") in
-  (string_to_exp lf_exp, lf_role)::cp_looking_for ()
+  (string_to_exp lf_exp, lf_role)::(cp_looking_for ())
+
+let rec cp_interests () =
+  let interest = print_read "Please enter one of your interests or type \"done\": " in
+  if String.lowercase_ascii (String.trim interest) = "done"  || String.trim interest = "" then []
+  else if (String.contains interest ';')
+    then (print_endline "\nYour interests may not contain \';\'. Please enter it again.\n"; cp_interests ())
+  else
+    let interests_tail = cp_interests () in
+    if List.mem interest interests_tail then
+      interests_tail
+    else interest::interests_tail
 
 let rec create_profile id =
-  let n = print_read "Enter your full name: " in
+  let n = print_read "\nEnter your full name: " in
   let s = print_read "Enter your school: " in
   let d = print_read "Enter your description: " in
-  let interests = print_read "Enter your interests (semi-colon seperated): " in
+  let interests = cp_interests () in
   let exp = print_read "Are you a beginner (BEG), intermediate (INT), or advanced (ADV) computer scientist? " in
   let r = print_read "What is your typical role on a team? " in
   let lf = cp_looking_for () in
   let github = print_read "What's your github URL? " in
-  let prof = {user_id = id; name = n; photo = ref ""; school = s; group_id_list = []; description = d; interest_list = (split_to_string_list interests); experience = (string_to_exp exp); role = r; looking_for = lf; github_url = github} in
-  if (update_server prof)
+  let prof = {user_id = id; name = n; photo = ref ""; school = s; group_id_list = []; description = d; interest_list = interests; experience = (string_to_exp exp); role = r; looking_for = lf; github_url = github} in
+  if (update_server prof) && n <> ""
     then ()
   else
     (print_string "Invalid information, please enter your details again.\n";
     create_profile id)
 
+(* Query server and pull profile json from server, convert to profile type *)
+let rec lookup_profile id =
+  let jProfileString = Nethttp_client.Convenience.http_get ("http://18.204.146.26/obumbl/get_profile.php?user_id=" ^ (string_of_int id)) in
+  if jProfileString = "-1" then
+    (create_profile id;
+    lookup_profile id)
+  else init_profile (from_string jProfileString)
+
 let about_profile p =
-  print_endline (p.name ^ " (" ^ p.school ^ ")");
-  print_endline ("Description: " ^ p.description);
-  print_endline ("Interested in: " ^ List.fold_right (fun a b -> a ^ "; " ^ b) p.interest_list "");
-  print_endline ("Experience: " ^ (exp_to_string p.experience));
-  print_endline ("Role: " ^ p.role);
-  print_endline ("Github: " ^ p.github_url)
+  print_string ("\n  " ^ p.name);
+  if p.school <> "" then print_endline (" (" ^ p.school ^ ")") else print_string "\n";
+  if p.description <> "" then print_endline ("  - Description: " ^ p.description) else ();
+  if p.interest_list <> [] then print_endline ("  - Interested in: " ^ List.fold_right (fun a b -> a ^ "; " ^ b) p.interest_list "") else ();
+  print_endline ("  - Experience: " ^ (exp_print_string p.experience));
+  if p.role <> "" then print_endline ("  - Role: " ^ p.role);
+  if p.github_url <> "" then print_endline ("  - Github: " ^ p.github_url)

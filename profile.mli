@@ -57,4 +57,12 @@ val remove_group : profile -> int -> profile
 
 val int_list_to_string : int list -> string
 
+val list_to_string : string list -> string
+
+val looking_for_to_string : ([ `BEG | `INT | `ADV ]*string) list -> string
+
 val about_profile : profile -> unit
+
+val cp_interests : unit -> string list
+
+val cp_looking_for : unit -> ([ `BEG | `INT | `ADV ]*string) list

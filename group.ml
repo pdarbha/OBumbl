@@ -63,12 +63,12 @@ let rec create_group p purpose_list =
         create_group p purpose_list)
       else
         let group_id = (int_of_string update) in
-        update_server (add_group p group_id); (lookup_group group_id)
+        ignore (update_server (add_group p group_id))
 
 (*[group_to_string g] is a readable string containing the purpose, minimum size
   and maximum size of group [g]*)
 let group_to_string g =
-  "Project code : "^g.purpose^"\nMinimum size: " ^ (string_of_int (fst (g.range))) ^ "\nMaximum size: "^ (string_of_int (snd (g.range))) ^"\n"
+  "Project code : " ^ g.purpose ^ "\nSize: " ^ (string_of_int g.size) ^ " (min " ^ (string_of_int (fst (g.range))) ^ ", max " ^ (string_of_int (snd (g.range))) ^ ")\nInvites: " ^ (string_of_int (List.length g.received_invites_list)) ^ "\n"
 
 (*[find_group_by_code purpose group_list] is None if no group in group_list has
   purpose [purpose] and Some group if a group has a matching purpose.
@@ -85,8 +85,11 @@ let find_group_by_id id group_list =
 
 (*[show_groups group_list] prints a string version of each group in group_list*)
 let show_groups group_list =
-  print_endline "Your groups are:";
-  List.iter (fun g -> print_endline (group_to_string g)) group_list
+  if group_list = [] then
+    print_endline "\nYou have no groups.\n"
+  else
+    print_endline "\nYour groups are:";
+    List.iter (fun g -> print_endline (group_to_string g)) group_list
 
 (*[size g] is the size of group [g]*)
 let size g = g.size
@@ -125,7 +128,7 @@ let delete_group g =
   users in the group*)
 let about_group g =
   let users = List.map (fun id -> lookup_profile id) g.user_id_list in
-  print_string ("Group for " ^ g.purpose ^ " (ID " ^ (string_of_int g.group_id) ^ "):\nMembers (" ^ (string_of_int g.size) ^ "[min " ^ (string_of_int (fst g.range)) ^ ", max " ^ (string_of_int (snd g.range)) ^ "] ):\n");
+  print_string ("\nGroup for " ^ g.purpose ^ " (ID " ^ (string_of_int g.group_id) ^ "):\nMembers: " ^ (string_of_int g.size) ^ " (min " ^ (string_of_int (fst g.range)) ^ ", max " ^ (string_of_int (snd g.range)) ^ ")\n");
   List.iter (fun p -> about_profile p) users
 
 (*[invites g] helps manage the invites that a group g has received. User can choose to
@@ -283,10 +286,10 @@ let swipe g =
                           else if (total_score g g1)>(total_score g g2) then -1 else 0) groups_to_be_matched in
   let rec swipe_repl g others =
     match others with
-    |[] -> print_endline "There are no more groups to swipe on; returning to previous page"
+    |[] -> print_endline "There are no more groups to swipe on; returning to previous page."
     |h::t ->
-      print_endline (group_to_string h);
-      let s = print_read "Enter \"about\", \"left\", \"right\", or \"done\"" in
+      about_group h;
+      let s = print_read "\nEnter \"about\", \"left\", \"right\", or \"done\": " in
       match (String.split_on_char ' ' s) with
       |"about"::_ -> about_group h; swipe_repl g others
       |"left"::_ ->
@@ -295,16 +298,16 @@ let swipe g =
         let received = int_list_to_string (g.received_invites_list) in
         let invited = int_list_to_string (g.invited_groups_list) in
         let params = [("group_id", (string_of_int g.group_id));("group_blacklist",blacklist_str);("received_invites_list",received);("invited_groups_list",invited)] in
-        let update = (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/update_group_lists.php" params) in
+        ignore (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/update_group_lists.php" params);
         swipe_repl {g with group_blacklist = blacklist} t
       |"right"::_ ->
         let g' = {g with invited_groups_list = (h.group_id)::g.invited_groups_list} in
         let params_h = [("group_id", string_of_int (h.group_id));("group_blacklist", int_list_to_string h.group_blacklist);("invited_groups_list", int_list_to_string (h.invited_groups_list));("received_invites_list", int_list_to_string ((g.group_id)::(h.received_invites_list)))] in
-        let update_h = (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/update_group_lists.php" params_h) in
+        ignore (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/update_group_lists.php" params_h);
         let params_g = [("group_id", string_of_int (g.group_id));("group_blacklist", int_list_to_string g.group_blacklist);("invited_groups_list", int_list_to_string (g'.invited_groups_list));("received_invites_list", int_list_to_string (g.received_invites_list))] in
-        let update_g = (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/update_group_lists.php" params_g) in
+        ignore (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/update_group_lists.php" params_g);
         swipe_repl g' t
-      |"done"::_ -> print_endline "Returning to previous page"
+      |"done"::_ -> print_endline "Returning to previous page."
       | _ -> print_endline "Not a valid command."; swipe_repl g others in
         swipe_repl g sorted
 

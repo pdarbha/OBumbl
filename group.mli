@@ -37,6 +37,6 @@ val lookup_group: int -> group
 
 val purpose : group -> string
 
-val create_group : Profile.profile -> string list -> group
+val create_group : Profile.profile -> string list -> unit
 
 val find_group_by_code : string -> group list -> group option
