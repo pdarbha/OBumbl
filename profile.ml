@@ -1,6 +1,8 @@
+open Helper
 open Yojson.Basic
 open Yojson.Basic.Util
 open Netencoding.Url
+open Nethttp_client.Convenience
 
 (* Limitations -- ** sanitize/escape all inputs before pushing to server **
 * Name - 64 char (full name) -- alphanumeric + spaces
@@ -16,16 +18,11 @@ open Netencoding.Url
 *)
 
 (* will store all information about each person including id, name, photo, description, etc.*)
-type profile = {user_id:int; name:string; photo:string ref; school:string; group_id_list: int list;
-                description: string; interest_list: string list; experience : [ `BEG | `INT | `ADV ];
+type profile = {user_id:int; name:string; photo:string ref; school:string;
+                group_id_list: int list; description: string;
+                interest_list: string list; experience : [ `BEG | `INT | `ADV ];
                 role: string; looking_for: ([ `BEG | `INT | `ADV ]*string) list;
                 github_url : string}
-
-let encode_url u = Netencoding.Url.encode u
-
-let decode_url u = Netencoding.Url.decode u
-
-let split_to_string_list str = String.split_on_char ';' str
 
 let string_to_exp s =
   if s = "INT" then `INT
@@ -34,9 +31,10 @@ let string_to_exp s =
 
 let string_to_looking_for s =
   if s = "" then []
-  else let lfList = split_to_string_list (String.sub s 0 ((String.length s)-1)) in
+  else let lfList = split_string_to_list (String.sub s 0 ((String.length s)-1)) in
   let validLfList = List.filter (fun s -> (String.length s) > 4) lfList in
-  List.map (fun el -> (string_to_exp (String.sub el 0 3), String.sub el 4 ((String.length el)-4))) validLfList
+  List.map (fun el -> (string_to_exp (String.sub el 0 3),
+                       String.sub el 4 ((String.length el)-4))) validLfList
 
 (* will take in Json file and parse it and store that information in an object of type profile *)
 let init_profile j =
@@ -45,9 +43,9 @@ let init_profile j =
   let photo = ref (j|>member "photo"|>to_string) in
   let school = j|>member "school"|>to_string in
   let groups = let s = j|>member "group_list"|>to_string in
-      if s = "" then [] else s|>String.split_on_char ';'|>List.map int_of_string in
+      if s = "" then [] else s|>split_string_to_list|>List.map int_of_string in
   let desc = j|>member "description"|>to_string in
-  let interests = j|>member "interest_list"|>to_string|>String.split_on_char ';' in
+  let interests = j|>member "interest_list"|>to_string|>split_string_to_list in
   let exp = j|>member "experience"|>to_string|>string_to_exp in
   let role = j|>member "role"|>to_string in
   let look_for = j|>member "looking_for"|>to_string|>string_to_looking_for in
@@ -90,17 +88,6 @@ let looking_for p = p.looking_for
  (* will return a string to a github.com profile URL *)
 let github p = p.github_url
 
-let list_to_string l=
-  match l with
-  | [] -> ""
-  | _ -> let s = List.fold_left (fun s1 s2 -> s1^";"^s2) "" l in
-        if s = "" then ""
-        else String.sub s 1 ((String.length s)-1)
-
-let int_list_to_string l =
-  let l' = List.map (string_of_int) l in
-  list_to_string l'
-
 let exp_to_string e =
   match e with
   |`BEG -> "BEG"
@@ -128,10 +115,11 @@ let edit p field new_val =
   |"school" -> {p with school = new_val}
   |"group_id_list" when new_val = "" -> {p with group_id_list = []}
   |"group_id_list" -> (try
-                        {p with group_id_list = List.map (int_of_string) (String.split_on_char ';' new_val)}
+                        {p with group_id_list =
+                            List.map (int_of_string) (split_string_to_list new_val)}
                       with _ -> failwith "Tried to give group_id non integer value")
   |"description" -> {p with description = new_val}
-  |"interest_list" -> {p with interest_list = String.split_on_char ';' new_val}
+  |"interest_list" -> {p with interest_list = split_string_to_list new_val}
   |"experience" -> {p with experience = (string_to_exp new_val)}
   |"role" -> {p with role = new_val}
   |"looking_for" -> {p with looking_for = string_to_looking_for new_val}
@@ -142,35 +130,44 @@ let add_group p group_id =
   edit p "group_id_list" (int_list_to_string (group_id::p.group_id_list))
 
 let remove_group p group_id =
-  edit p "group_id_list" (int_list_to_string (List.filter (fun i -> i <> group_id) p.group_id_list))
+  edit p "group_id_list"
+    (int_list_to_string (List.filter (fun i -> i <> group_id) p.group_id_list))
 
 (* will take in a profile and uploads it to the server and returns true if it is uploaded
  * successfully. Has the side effect of changing information in the server. *)
 let update_server p =
-  let params = [("user_id", string_of_int (p.user_id));("name", (p.name));("photo", (!(p.photo)));("school", (p.school));("group_list", (int_list_to_string (p.group_id_list)));("description", (p.description));("interest_list", list_to_string (p.interest_list));("experience", exp_to_string (p.experience));("role", (p.role));("looking_for", looking_for_to_string (p.looking_for));("github_url", encode_url (p.github_url))] in
-  let update = (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/insert_profile.php" params) in
-  if update = "1" then true
-  else false
-
-let print_read s =
-  let () = print_string s in
-  read_line () |> String.trim
+  let params = [("user_id", string_of_int (p.user_id));("name", (p.name));
+                ("photo", (!(p.photo)));("school", (p.school));
+                ("group_list", (int_list_to_string (p.group_id_list)));
+                ("description", (p.description));
+                ("interest_list", list_to_string (p.interest_list));
+                ("experience", exp_to_string (p.experience));("role", (p.role));
+                ("looking_for", looking_for_to_string (p.looking_for));
+                ("github_url", encode_url (p.github_url))] in
+  let update = (http_post insert_prof_url params) in
+  if update = "1" then true else false
 
 let rec cp_looking_for ()=
-  let lf_role = print_read "Please enter a role you are looking for on your team or type \"done\": " in
-  if String.lowercase_ascii (String.trim lf_role) = "done" then []
-  else let lf_exp = print_read ("Are you looking for a beginner (BEG), intermediate (INT), or advanced (ADV) " ^ lf_role ^ " ? ") in
+  let lf_role = print_read ("Please enter a role you are looking for on your team"^
+                           " or type \"done\": ") in
+  if String.lowercase_ascii (String.trim lf_role) = "done"
+    then []
+  else let lf_exp = print_read ("Are you looking for a beginner (BEG), intermediate"^
+                                  " (INT), or advanced (ADV) " ^ lf_role ^ " ? ") in
   (string_to_exp lf_exp, lf_role)::(cp_looking_for ())
 
 let rec cp_interests () =
   let interest = print_read "Please enter one of your interests or type \"done\": " in
-  if String.lowercase_ascii (String.trim interest) = "done"  || String.trim interest = "" then []
+  if String.lowercase_ascii (String.trim interest) = "done" || String.trim interest = ""
+    then []
   else if (String.contains interest ';')
-    then (print_endline "\nYour interests may not contain \';\'. Please enter it again.\n"; cp_interests ())
+    then (print_endline ("\nYour interests may not contain \';\'."^
+                        " Please enter it again.\n");
+          cp_interests ())
   else
     let interests_tail = cp_interests () in
-    if List.mem interest interests_tail then
-      interests_tail
+    if List.mem interest interests_tail
+      then interests_tail
     else interest::interests_tail
 
 let rec create_profile id =
@@ -178,11 +175,15 @@ let rec create_profile id =
   let s = print_read "Enter your school: " in
   let d = print_read "Enter your description: " in
   let interests = cp_interests () in
-  let exp = print_read "Are you a beginner (BEG), intermediate (INT), or advanced (ADV) computer scientist? " in
+  let exp = print_read ("Are you a beginner (BEG), intermediate (INT), or "^
+                       "advanced (ADV) computer scientist? ") in
   let r = print_read "What is your typical role on a team? " in
   let lf = cp_looking_for () in
   let github = print_read "What's your github URL? " in
-  let prof = {user_id = id; name = n; photo = ref ""; school = s; group_id_list = []; description = d; interest_list = interests; experience = (string_to_exp exp); role = r; looking_for = lf; github_url = github} in
+  let prof = {user_id = id; name = n; photo = ref ""; school = s; group_id_list = [];
+              description = d; interest_list = interests;
+              experience = (string_to_exp exp); role = r; looking_for = lf;
+              github_url = github} in
   if (update_server prof) && n <> ""
     then ()
   else
@@ -191,17 +192,21 @@ let rec create_profile id =
 
 (* Query server and pull profile json from server, convert to profile type *)
 let rec lookup_profile id =
-  let jProfileString = Nethttp_client.Convenience.http_get ("http://18.204.146.26/obumbl/get_profile.php?user_id=" ^ (string_of_int id)) in
-  if jProfileString = "-1" then
-    (create_profile id;
-    lookup_profile id)
+  let jProfileString = http_get (get_prof_url ^ (string_of_int id)) in
+  if jProfileString = "-1"
+    then (create_profile id; lookup_profile id)
   else init_profile (from_string jProfileString)
 
 let about_profile p =
   print_string ("\n  " ^ p.name);
-  if p.school <> "" then print_endline (" (" ^ p.school ^ ")") else print_string "\n";
-  if p.description <> "" then print_endline ("  - Description: " ^ p.description) else ();
-  if p.interest_list <> [] then print_endline ("  - Interested in: " ^ List.fold_right (fun a b -> a ^ "; " ^ b) p.interest_list "") else ();
+  if p.school <> ""
+    then print_endline (" (" ^ p.school ^ ")")
+    else print_string "\n";
+  if p.description <> ""
+    then print_endline ("  - Description: " ^ p.description);
+  if p.interest_list <> []
+    then print_endline ("  - Interested in: " ^
+         List.fold_right (fun a b -> a ^ "; " ^ b) p.interest_list "");
   print_endline ("  - Experience: " ^ (exp_print_string p.experience));
   if p.role <> "" then print_endline ("  - Role: " ^ p.role);
   if p.github_url <> "" then print_endline ("  - Github: " ^ p.github_url)

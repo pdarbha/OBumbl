@@ -5,5 +5,6 @@
 open Yojson.Basic;;
 open Yojson.Basic.Util;;
 open Nethttp_client.Convenience;;
+#use "helper.ml";;
 #use "profile.ml";;
 #use "group.ml";;

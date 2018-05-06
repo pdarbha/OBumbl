@@ -1,5 +1,7 @@
+open Helper
 open Profile
 open Group
+open Nethttp_client.Convenience
 
 type lr_variant = Login | Register
 
@@ -21,13 +23,15 @@ let login_or_register () =
       let username = String.trim (read_line ()) in
       print_string "Enter password: ";
       let password = String.trim (read_line ()) in
-      output := (Login, (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/login.php" [("username",username);("password",password)])))
+      let params = [("username",username);("password",password)] in
+      output := (Login, (http_post login_url params)))
     else (if !input = "register" then
       (print_string "Enter username: ";
       let username = String.trim (read_line ()) in
       print_string "Enter password: ";
       let password = String.trim (read_line ()) in
-      output := (Register, (Nethttp_client.Convenience.http_post "http://18.204.146.26/obumbl/register.php" [("username",username);("password",password)]))))
+      let params = [("username",username);("password",password)] in
+      output := (Register, (http_post register_url params ))))
   done in
   !output
 
@@ -38,13 +42,24 @@ let pull_group_data p =
 
 let rec repl p group_list =
   show_groups group_list;
-  let resp = if group_list = [] then print_read "Enter \"new group\" to create a new group, \"edit profile\", or \"quit\": " else print_read "Enter \"about\", \"invites\", or \"swipe\", followed by a group's project code, to see the respective information, \"new group\" to create a new group, \"leave\" followed by the group's project code to leave the group, \"edit profile\", or \"quit\": " in
-  if resp = "quit" then
-    print_endline "\nThanks for using OBumbl!\n"
+  let resp =
+    if group_list = []
+      then print_read ("Enter \"new group\" to create a new group,"^
+                       " \"edit profile\", or \"quit\": ")
+    else print_read ("Enter \"about\", \"invites\", or \"swipe\", followed by a"^
+                     " group's project code, to see the respective information, "^
+                     "\"new group\" to create a new group, \"leave\" followed by"^
+                     " the group's project code to leave the group, \"edit profile\","^
+                     " or \"quit\": ") in
+  if resp = "quit"
+    then print_endline "\nThanks for using OBumbl!\n"
   else
     ((match (String.split_on_char ' ' resp) with
     | "edit"::"profile"::[] ->
-      let field = print_read "Type the field you would like to edit (\"name\", \"school\", \"description\", \"interest_list\", \"experience\", \"role\", \"looking_for\", or \"github_url\"): " in
+      let field = print_read ("Type the field you would like to edit (\"name\","^
+                              " \"school\", \"description\", \"interest_list\","^
+                              " \"experience\", \"role\", \"looking_for\", or "^
+                              "\"github_url\"): ") in
       let field_value =
         (match field with
         | "name" | "school" | "description" | "experience" | "role" | "github_url" ->
@@ -52,7 +67,9 @@ let rec repl p group_list =
         | "interest_list" -> list_to_string (cp_interests ())
         | "looking_for" -> looking_for_to_string (cp_looking_for ())
         | _ -> print_string "Invalid field.\n"; "") in
-      if ((field = "name" && field_value <> "") || field <> "name") && update_server (edit p field field_value) = true then ()
+      if (((field = "name" && field_value <> "") || field <> "name") &&
+          update_server (edit p field field_value) = true)
+        then ()
       else print_string "Profile edit unsuccessful.\n"
     | "new"::"group"::[] ->
       let purpose_list = List.map (fun g -> purpose g) group_list in
@@ -77,7 +94,8 @@ let rec login_loop () =
   let lr = login_or_register () in
   let user_id = int_of_string (snd lr) in
   if user_id = -1 then
-    (print_string ((match fst lr with Login -> "Login" | Register -> "Register") ^ " unsuccessful.\n");
+    (print_string ((match fst lr with Login -> "Login" | Register -> "Register") ^
+                   " unsuccessful.\n");
     login_loop ())
   else
     ((if (fst lr) = Register then create_profile user_id else ());
