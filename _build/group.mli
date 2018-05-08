@@ -29,6 +29,7 @@ val invites: group -> unit
 (*[swipe g] displays a list of potential matching groups for group g and blacklists groups that the user declines and sends invites to accepted groups*)
 val swipe: group -> unit
 
+
 (*[leave p g] creates a new group without user who decided to leave. Leaving a group deletes the tag associated with the project for the leaving user. User must make a new tag to create group for that purpose*)
 val leave: Profile.profile -> group -> unit
 
