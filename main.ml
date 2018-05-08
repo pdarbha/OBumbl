@@ -66,8 +66,12 @@ let rec repl p group_list =
         | "about" -> about_group g'
         | "invites" -> invites g'
         | "swipe" -> swipe g'
+<<<<<<< Updated upstream
         | "leave" -> leave p g'
         | _ -> print_string "Invalid command. Try again.\n")
+=======
+        | "leave" -> leave p g')
+>>>>>>> Stashed changes
     | _ -> print_string "Invalid response. Try again.\n");
     let p' = lookup_profile (user_id p) in
     repl p' (pull_group_data p'))
@@ -83,6 +87,10 @@ let rec login_loop () =
     ((if (fst lr) = Register then create_profile user_id else ());
     let user_profile = lookup_profile user_id in
     let group_data = pull_group_data user_profile in
+<<<<<<< Updated upstream
     repl user_profile group_data)
 
 let () = login_loop ()
+=======
+    repl user_profile group_data
+>>>>>>> Stashed changes
