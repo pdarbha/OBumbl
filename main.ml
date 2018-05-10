@@ -44,10 +44,10 @@ let rec repl p group_list =
   else
     ((match (String.split_on_char ' ' resp) with
     | "edit"::"profile"::[] ->
-      let field = print_read "Type the field you would like to edit (\"name\", \"school\", \"description\", \"interest_list\", \"experience\", \"role\", \"looking_for\", or \"github_url\"): " in
+      let field = print_read "Type the field you would like to edit (\"name\", \"school\", \"description\", \"interest_list\", \"experience\", \"role\", \"looking_for\", \"github_url\", or \"email\"): " in
       let field_value =
         (match field with
-        | "name" | "school" | "description" | "experience" | "role" | "github_url" ->
+        | "name" | "school" | "description" | "experience" | "role" | "github_url" | "email" ->
           print_read ("What would you like as your new " ^ field ^ "? ")
         | "interest_list" -> list_to_string (cp_interests ())
         | "looking_for" -> looking_for_to_string (cp_looking_for ())
