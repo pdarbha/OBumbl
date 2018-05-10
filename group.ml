@@ -24,6 +24,7 @@ let init_group j =
   let size = j|>member "size"|>to_string|>int_of_string in
   let range_min = j|>member "range_min"|>to_string|>int_of_string in
   let range_max = j|>member "range_max"|>to_string|>int_of_string in
+  let schedule = j|> member "schedule" |> to_string |> schedule_from_string in
   let blacklist = let s = j|>member "group_blacklist"|>to_string in
       if s = "" then [] else s|>String.split_on_char ';'|>List.map int_of_string in
   let invited = let s = j|>member "invited_groups_list"|>to_string in
@@ -31,7 +32,7 @@ let init_group j =
   let received = let s = j|>member "received_invites_list"|>to_string in
       if s = "" then [] else s|>String.split_on_char ';'|>List.map int_of_string in
   {group_id = id; user_id_list = users; purpose = purpose; size = size;
-   range = (range_min,range_max); group_blacklist = blacklist;
+   range = (range_min,range_max); schedule = schedule; group_blacklist = blacklist;
    invited_groups_list = invited; received_invites_list = received}
 
 (*[lookup_group id] returns a group. Takes a group id
