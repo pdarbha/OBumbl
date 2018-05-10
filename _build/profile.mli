@@ -26,7 +26,7 @@ val description : profile -> string
 val interests : profile -> string list
 
 (* will return the experience of a user as a variant *)
-val experience : profile -> [ `BEG | `INT | `ADV ]
+ val experience : profile -> [ `BEG | `INT | `ADV ]
 
 (* will return the role of a user *)
 val role : profile -> string
@@ -47,11 +47,17 @@ val lookup_profile : int -> profile
  * successfully. Has the side effect of changing information in the server. *)
 val update_server : profile -> bool
 
+val print_read : string -> string
+
 val create_profile : int -> unit
 
 val add_group : profile -> int -> profile
 
 val remove_group : profile -> int -> profile
+
+val int_list_to_string : int list -> string
+
+val list_to_string : string list -> string
 
 val looking_for_to_string : ([ `BEG | `INT | `ADV ]*string) list -> string
 
