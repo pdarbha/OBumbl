@@ -4,15 +4,28 @@ open Yojson.Basic.Util
 open Profile
 open Nethttp_client.Convenience
 
+(*this represents the day of the week the group is available to meet *)
+type day = Sun|Mon|Tues|Wed|Thu|Fri|Sat
+
+(*
+  AF: In the tuple, the day represents the day of the week and the 2 integers
+    represent the beginning and end of the time they are available to meet. The
+    times are in 24 hour form where 8:35 AM is 835 and 8:35 PM is 2035. If the group
+    would like to work past midnight, they must split the time into 2 times, one ending
+    at midnight of the first day and the next starting at midnight of the next day.
+  RI: The second integer must necessarily be greater than the first one.
+*)
+type schedule = (day*((int*int)list)) list
+
 type group = {group_id : int; user_id_list: int list; purpose : string; size : int;
               range : (int * int); group_blacklist : int list;
-              invited_groups_list : int list; received_invites_list : int list}
+              invited_groups_list : int list; received_invites_list : int list;
+              schedule: schedule}
 
 let empty_group = {group_id = -1; user_id_list = []; purpose = ""; size = 0;
               range = (0,0); group_blacklist = []; invited_groups_list = [];
-              received_invites_list = []}
+              received_invites_list = []; schedule = []}
 
-(*[init_group j] is a group created by parsing a json [j].*)
 let init_group j =
   let id = j|>member "group_id"|>to_string|>int_of_string in
   let users = let s = j|>member "user_id_list"|>to_string in
@@ -45,6 +58,113 @@ let lookup_group id =
   if jsonGroupString = "-1" then empty_group else
   init_group (from_string jsonGroupString)
 
+let rec get_first_time_for_schedule ()=
+  let time1_input = print_read ("\nEnter the start of the time you are free that day"^
+                  " in 24 hour time. For example, to say 8:35pm type \"2035\": ") in
+  let time1_trimmed =
+    String.trim
+    (if (String.contains time1_input ':')
+      then String.sub time1_input 0 (String.index time1_input ':') ^
+           String.sub time1_input ((String.index time1_input ':')+1) ((String.length time1_input)-(String.index time1_input ':')-1)
+     else time1_input) in
+  let time1 = try (int_of_string time1_trimmed)
+              with _ -> (print_endline "\nEnter the time as a number";get_first_time_for_schedule()) in
+  if (((time1 mod 100) >59) || ((time1/100)>23) || time1<0)
+    then (print_endline "\nEnter a valid time between 0000 to 2359";get_first_time_for_schedule())
+  else time1
+
+let rec get_second_time_for_schedule () =
+  let time2_input = print_read ("\nEnter the end of the time you are free that day"^
+                  " in 24 hour time. For example, to say 8:35pm type \"2035\": ") in
+  let time2_trimmed =
+    String.trim
+    (if (String.contains time2_input ':')
+      then String.sub time2_input 0 (String.index time2_input ':') ^
+           String.sub time2_input ((String.index time2_input ':')+1) ((String.length time2_input)-(String.index time2_input ':')-1)
+     else time2_input) in
+  let time2 = try (int_of_string time2_trimmed)
+              with _ -> (print_endline "\nEnter the time as a number";get_second_time_for_schedule()) in
+  if (((time2 mod 100) >59) || ((time2/100)>23)|| time2<0)
+    then (print_endline "\nEnter a valid time between 0000 to 2359";get_second_time_for_schedule())
+  else time2
+
+let day_to_string d =
+  match d with
+  |Sun -> " sunday "
+  |Mon  -> " monday "
+  |Tues -> " tuesday "
+  |Wed -> " wednesday "
+  |Thu -> " thursday "
+  |Fri -> " friday "
+  |Sat -> " saturday "
+
+let rec get_times day acc=
+  let st = day_to_string day in
+  let done_or_not = print_read ("\nEnter \"done\" if you are done entering the times you are available on"^st^"or press \"enter\" to continue entering times: ") in
+  if String.lowercase_ascii (String.trim (done_or_not)) = "done" then acc
+  else
+    let time1 = get_first_time_for_schedule () in
+    let time2 = get_second_time_for_schedule () in
+    if time1>=time2
+      then (print_endline "\nEnd time must be after start time";get_times day acc)
+    else get_times day ((time1,time2)::acc)
+
+let rec create_schedule acc=
+  let day_input = print_read ("\nPlease enter a day of the week you are free to work on"^
+                           " this project or type \"done\": ") in
+  if String.lowercase_ascii (String.trim day_input) = "done"
+    then acc
+  else
+    let day_opt =
+      (match (String.lowercase_ascii (String.trim day_input)) with
+      |"sunday" -> Some Sun
+      |"monday" -> Some Mon
+      |"tuesday" -> Some Tues
+      |"wednesday" -> Some Wed
+      |"thursday" -> Some Thu
+      |"friday" -> Some Fri
+      |"saturday" -> Some Sat
+      | _ -> None) in
+    match day_opt with
+    |None -> (print_endline ("\nEnter the full name of the day of the week.");
+             create_schedule acc)
+    |Some day ->
+      let curr_times = if List.mem_assoc day acc then List.assoc day acc else [] in
+      let times = get_times day curr_times in
+      create_schedule ((day,times)::(List.remove_assoc day acc))
+
+let time_diff t1 t2 =
+  let hour_diff = (t1/100) - (t2/100) in
+  let min1 = t1 mod 100 in
+  let min2 = t2 mod 100 in
+  if min1>=min2 then hour_diff*60 + min1 - min2
+  else
+    let to_next_hour = 60-min2 in
+    hour_diff*60 -60 + to_next_hour + min1
+
+let time_overlap g_time o_time =
+  let (b,e) = g_time in
+  let (ob,oe) = o_time in
+  if (oe<b||e<ob) then 0 else
+  if oe<e then if b>ob then time_diff oe b else time_diff oe ob
+  else if b>ob then time_diff e b else time_diff e ob
+
+let rec remove_overlaps_for_a_day s =
+  match s with
+  |(b1,e1)::(b2,e2)::t ->
+    if (time_overlap (b1,e1) (b2,e2)) > 0
+      then remove_overlaps_for_a_day (((min b1 b2),(max e1 e2))::t)
+    else (b1,e1)::(remove_overlaps_for_a_day ((b2,e2)::t))
+  | _ -> s
+
+
+let rec remove_overlaps s =
+  match s with
+  |[] -> []
+  |(day,l)::t ->
+    let sorted_list_of_day = List.sort (fun (b1,_) (b2,_)-> b1-b2) l in
+    (day,(remove_overlaps_for_a_day sorted_list_of_day)) :: (remove_overlaps t)
+
 (*[create_group p] creates a group from a profile p with additional input of
   purpose, min size, and max size of group from user.*)
 let rec create_group p purpose_list =
@@ -69,10 +189,13 @@ let rec create_group p purpose_list =
                          " than or equal to min size.\n");
             create_group p purpose_list)
     else
+      let schedule = create_schedule [] in
+      let sched_string = schedule_to_string schedule in
       let params = [("user_id_list", string_of_int (user_id p));("purpose", purpose);
                     ("size","1");("range_min", string_of_int range_min);
                     ("range_max", string_of_int range_max);("group_blacklist","");
-                    ("invited_groups_list","");("received_invites_list","")] in
+                    ("invited_groups_list","");("received_invites_list","");
+                    ("schedule",sched_string)] in
       let update = (insert_group params) in
       if update = "-1" then
         (print_string "Group could not be created, try again.\n";
@@ -241,6 +364,43 @@ let get_groups_with_purpose g =
   let json_list = from_string json_string|>to_list in
   let group_list = List.map (init_group) json_list in
   List.filter (show_group_in_swipes g) group_list
+
+let rec total_minutes acc sched =
+  match sched with
+  |[] -> acc
+  |(_,l)::t ->
+    let rec add_minutes_for_day acc times =
+    match times with
+    |[] -> acc
+    |(b,e)::t -> add_minutes_for_day ((time_diff e b)+acc) t in
+    total_minutes (acc + (add_minutes_for_day 0 l)) t
+
+let rec overlap_for_one_day acc g_times o_times =
+  match g_times with
+  |[] -> acc
+  |g_time::t ->
+    let rec overlap_for_one_time acc g_time o_times =
+    match o_times with
+    |[] -> acc
+    |o_time::t ->
+      overlap_for_one_time ((time_overlap g_time o_time)+acc) g_time t in
+    overlap_for_one_day (acc + (overlap_for_one_time 0 g_time o_times)) t o_times
+
+let rec schedule_sum acc o_sched g_sched =
+  match g_sched with
+  |[] -> acc
+  |(day,times)::t ->
+    if List.mem_assoc day o_sched
+      then schedule_sum (acc + (overlap_for_one_day 0 times (List.assoc day o_sched))) o_sched t
+    else schedule_sum acc o_sched t
+
+let schedule_score g other =
+  let g_sched = g.schedule in
+  let o_sched = o.schedule in
+  let score = schedule_sum 0 o_sched g_sched in
+  let total = total_minutes 0 g_sched in
+  (float score)/.(float total)
+
 
 (* takes in an accumulator (usually [] in the beginning) and list and returns a
    key value pair list with keys being elements of list and frequency an integer *)

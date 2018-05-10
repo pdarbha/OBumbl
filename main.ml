@@ -40,6 +40,14 @@ let pull_group_data p =
   let group_int_list = groups p in
   List.map (fun id -> lookup_group id) group_int_list
 
+let perform_action_on_group g p action=
+  match action with
+  | "about" -> about_group g
+  | "invites" -> invites g
+  | "swipe" -> swipe g
+  | "leave" -> leave p g
+  | _ -> print_string "Invalid command. Try again.\n")
+
 let rec repl p group_list =
   show_groups group_list;
   let resp =
@@ -79,16 +87,7 @@ let rec repl p group_list =
       let g = find_group_by_code x group_list in
       (match g with
       | None -> print_string "Invalid group code provided.\n"
-      | Some g' -> match c with
-        | "about" -> about_group g'
-        | "invites" -> invites g'
-        | "swipe" -> swipe g'
-<<<<<<< Updated upstream
-        | "leave" -> leave p g'
-        | _ -> print_string "Invalid command. Try again.\n")
-=======
-        | "leave" -> leave p g')
->>>>>>> Stashed changes
+      | Some g' -> perform_action_on_group g' p c
     | _ -> print_string "Invalid response. Try again.\n");
     let p' = lookup_profile (user_id p) in
     repl p' (pull_group_data p'))
@@ -105,13 +104,6 @@ let rec login_loop () =
     ((if (fst lr) = Register then create_profile user_id else ());
     let user_profile = lookup_profile user_id in
     let group_data = pull_group_data user_profile in
-<<<<<<< Updated upstream
     repl user_profile group_data)
 
 let () = login_loop ()
-<<<<<<< HEAD
-=======
-    repl user_profile group_data
->>>>>>> Stashed changes
-=======
->>>>>>> 3ede20329888f5d285e1968a47a3fc86fe391f59
