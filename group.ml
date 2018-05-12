@@ -26,6 +26,52 @@ let empty_group = {group_id = -1; user_id_list = []; purpose = ""; size = 0;
               range = (0,0); group_blacklist = []; invited_groups_list = [];
               received_invites_list = []; schedule = []}
 
+let day_to_string d=
+  match d with
+  |Sun -> "Sun "
+  |Mon -> "Mon "
+  |Tues -> "Tue "
+  |Wed -> "Wed "
+  |Thu -> "Thu "
+  |Fri -> "Fri "
+  |Sat -> "Sat "
+
+let day_from_string d=
+  match d with
+  |"Sun" -> Sun
+  |"Mon" -> Mon
+  |"Tue" -> Tues
+  |"Wed" -> Wed
+  |"Thu" -> Thu
+  |"Fri" -> Fri
+  |"Sat" -> Sat
+
+let times_from_string s =
+  let times = String.split_on_char ',' s in
+  List.map (fun s -> let sep = (String.index s '-') + 1 in
+                     let len = String.length s in
+                     (int_of_string (String.sub s 0 (sep-1)),
+                      int_of_string (String.sub s (sep) (len-sep)))) times
+
+let schedule_from_string s =
+  let scheds = String.split_on_char ';' s in
+  List.map (fun s -> (day_from_string (String.sub s 0 3),
+                      times_from_string (String.sub s 4 ((String.length s)-4)))) scheds
+
+let times_to_string l =
+  match l with
+  |[] -> ""
+  | _ ->
+    let s = List.fold_left (fun acc (b,e) -> acc^(string_of_int b)^"-"^(string_of_int e)^",") "" l in
+    String.sub s 0 ((String.length s)-1)
+
+let schedule_to_string sched =
+  match sched with
+  |[] -> ""
+  |_ ->
+    let s = List.fold_left (fun acc (d,l) -> acc^(day_to_string d)^(times_to_string l)^";") "" sched in
+    String.sub s 0 ((String.length s)-1)
+
 let init_group j =
   let id = j|>member "group_id"|>to_string|>int_of_string in
   let users = let s = j|>member "user_id_list"|>to_string in
@@ -34,6 +80,7 @@ let init_group j =
   let size = j|>member "size"|>to_string|>int_of_string in
   let range_min = j|>member "range_min"|>to_string|>int_of_string in
   let range_max = j|>member "range_max"|>to_string|>int_of_string in
+  let schedule = j|> member "schedule" |> to_string |> schedule_from_string in
   let blacklist = let s = j|>member "group_blacklist"|>to_string in
       if s = "" then [] else s|>split_string_to_list|>List.map int_of_string in
   let invited = let s = j|>member "invited_groups_list"|>to_string in
@@ -41,7 +88,7 @@ let init_group j =
   let received = let s = j|>member "received_invites_list"|>to_string in
       if s = "" then [] else s|>split_string_to_list|>List.map int_of_string in
   {group_id = id; user_id_list = users; purpose = purpose; size = size;
-   range = (range_min,range_max); group_blacklist = blacklist;
+   range = (range_min,range_max); schedule = schedule; group_blacklist = blacklist;
    invited_groups_list = invited; received_invites_list = received}
 
 let insert_group params =
@@ -88,7 +135,7 @@ let rec get_second_time_for_schedule () =
     then (print_endline "\nEnter a valid time between 0000 to 2359";get_second_time_for_schedule())
   else time2
 
-let day_to_string d =
+let day_to_string_for_repl d =
   match d with
   |Sun -> " sunday "
   |Mon  -> " monday "
@@ -99,7 +146,7 @@ let day_to_string d =
   |Sat -> " saturday "
 
 let rec get_times day acc=
-  let st = day_to_string day in
+  let st = day_to_string_for_repl day in
   let done_or_not = print_read ("\nEnter \"done\" if you are done entering the times you are available on"^st^"or press \"enter\" to continue entering times: ") in
   if String.lowercase_ascii (String.trim (done_or_not)) = "done" then acc
   else
@@ -276,7 +323,10 @@ let about_group g =
   print_string ("\nGroup for " ^ g.purpose ^ " (ID " ^ (string_of_int g.group_id) ^
                 "):\nMembers: " ^ (string_of_int g.size) ^ " (min " ^
                 (string_of_int (fst g.range)) ^ ", max " ^
-                (string_of_int (snd g.range)) ^ ")\n");
+                (string_of_int (snd g.range)) ^ ")\n" ^ "Schedule:");
+  List.iter (fun (d,l) -> print_string ("\n"^(day_to_string_for_repl d)^
+                          ": "^(times_to_string l))) g.schedule;
+  print_string "\n";
   List.iter (fun p -> about_profile p) users
 
 let update_and_return g =
@@ -396,7 +446,7 @@ let rec schedule_sum acc o_sched g_sched =
 
 let schedule_score g other =
   let g_sched = g.schedule in
-  let o_sched = o.schedule in
+  let o_sched = other.schedule in
   let score = schedule_sum 0 o_sched g_sched in
   let total = total_minutes 0 g_sched in
   (float score)/.(float total)
@@ -488,7 +538,9 @@ let score_determination my_group other_group : float =
 let total_score g other =
   let interest_weight = 1.0 in
   let looking_for_weight = 1.0 in
-  (interest_weight *. (interests_score g other)) +.
+  let schedule_weight = 1.0 in
+  (schedule_weight *. (schedule_score g other)) +.
+    (interest_weight *. (interests_score g other)) +.
     (looking_for_weight *. (score_determination g other))
 
 (*[swipe g] produces a list of groups that can be swiped through by group g sorted

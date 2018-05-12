@@ -46,7 +46,7 @@ let perform_action_on_group g p action=
   | "invites" -> invites g
   | "swipe" -> swipe g
   | "leave" -> leave p g
-  | _ -> print_string "Invalid command. Try again.\n")
+  | _ -> print_string "Invalid command. Try again.\n"
 
 let rec repl p group_list =
   show_groups group_list;
@@ -66,11 +66,11 @@ let rec repl p group_list =
     | "edit"::"profile"::[] ->
       let field = print_read ("Type the field you would like to edit (\"name\","^
                               " \"school\", \"description\", \"interest_list\","^
-                              " \"experience\", \"role\", \"looking_for\", or "^
-                              "\"github_url\"): ") in
+                              " \"experience\", \"role\", \"looking_for\", "^
+                              "\"github_url\", or ): \"email\"): ") in
       let field_value =
         (match field with
-        | "name" | "school" | "description" | "experience" | "role" | "github_url" ->
+        | "name" | "school" | "description" | "experience" | "role" | "github_url" | "email" ->
           print_read ("What would you like as your new " ^ field ^ "? ")
         | "interest_list" -> list_to_string (cp_interests ())
         | "looking_for" -> looking_for_to_string (cp_looking_for ())
@@ -87,7 +87,7 @@ let rec repl p group_list =
       let g = find_group_by_code x group_list in
       (match g with
       | None -> print_string "Invalid group code provided.\n"
-      | Some g' -> perform_action_on_group g' p c
+      | Some g' -> perform_action_on_group g' p c)
     | _ -> print_string "Invalid response. Try again.\n");
     let p' = lookup_profile (user_id p) in
     repl p' (pull_group_data p'))

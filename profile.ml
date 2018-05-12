@@ -15,6 +15,7 @@ open Nethttp_client.Convenience
 * role - 32 char (alphanumeric + spaces)
 * looking_for list - "BEG" or "INT" or "ADV" for exp, 32 for role (alphanumeric + spaces) -- exp1 role1;exp2 role2
 * Github URL - 60 char (URL encoded then decoded -- example: https://www.urlencoder.org)
+* email - 254 char limit
 *)
 
 (* [type profile] stores all information about each person including id, name,
@@ -25,7 +26,8 @@ type profile = {user_id:int; name:string; photo:string ref; school:string;
                 group_id_list: int list; description: string;
                 interest_list: string list; experience : [ `BEG | `INT | `ADV ];
                 role: string; looking_for: ([ `BEG | `INT | `ADV ]*string) list;
-                github_url : string}
+                github_url : string; email: string}
+
 (* [string_to_exp s] takes in a string s and matches that string to the
    experience variant types.
  * requires: a string*)
@@ -60,9 +62,10 @@ let init_profile j =
   let role = j|>member "role"|>to_string in
   let look_for = j|>member "looking_for"|>to_string|>string_to_looking_for in
   let github = j|>member "github_url"|>to_string |> decode_url in
+  let e = j|>member "email"|>to_string in
   {user_id = id; name = name; photo = photo; school = school; group_id_list = groups;
    description = desc; interest_list = interests; experience = exp; role = role;
-   looking_for = look_for; github_url = github}
+   looking_for = look_for; github_url = github; email = e}
 
 (* [user_id p] takes in a profile p and returns the unique user id associated
    with that profile
@@ -120,6 +123,8 @@ let looking_for p = p.looking_for
  * requires: a valid profile*)
 let github p = p.github_url
 
+let email p = p.email
+
 (* [exp_to_string e] takes in an experience e and matches it to its
    corresponding string representation
  * requires: a valid experience of type `BEG, `INT, or `ADV *)
@@ -171,6 +176,7 @@ let edit p field new_val =
   |"role" -> {p with role = new_val}
   |"looking_for" -> {p with looking_for = string_to_looking_for new_val}
   |"github_url" -> {p with github_url = new_val}
+  |"email" -> {p with email = new_val}
   | _ -> failwith "Must enter a valid field of profile to edit"
 
 (* [add_group p group_id] takes in a profile p and a group id group_id. It then
@@ -194,13 +200,13 @@ let remove_group p group_id =
  * side effects: changes information related to that profile in the server *)
 let update_server p =
   let params = [("user_id", string_of_int (p.user_id));("name", (p.name));
-                ("photo", (!(p.photo)));("school", (p.school));
-                ("group_list", (int_list_to_string (p.group_id_list)));
-                ("description", (p.description));
-                ("interest_list", list_to_string (p.interest_list));
-                ("experience", exp_to_string (p.experience));("role", (p.role));
-                ("looking_for", looking_for_to_string (p.looking_for));
-                ("github_url", encode_url (p.github_url))] in
+  ("photo", (!(p.photo)));("school", (p.school));
+  ("group_list", (int_list_to_string (p.group_id_list)));
+  ("description", (p.description));
+  ("interest_list", list_to_string (p.interest_list));
+  ("experience", exp_to_string (p.experience));("role", (p.role));
+  ("looking_for", looking_for_to_string (p.looking_for));
+  ("github_url", encode_url (p.github_url));("email", (p.email))] in
   let update = (http_post insert_prof_url params) in
   if update = "1" then true else false
 
@@ -248,10 +254,11 @@ let rec create_profile id =
   let r = print_read "What is your typical role on a team? " in
   let lf = cp_looking_for () in
   let github = print_read "What's your github URL? " in
+  let e = print_read "What's your email? " in
   let prof = {user_id = id; name = n; photo = ref ""; school = s; group_id_list = [];
               description = d; interest_list = interests;
               experience = (string_to_exp exp); role = r; looking_for = lf;
-              github_url = github} in
+              github_url = github; email = e} in
   if (update_server prof) && n <> ""
     then ()
   else
@@ -281,4 +288,5 @@ let about_profile p =
          List.fold_right (fun a b -> a ^ "; " ^ b) p.interest_list "");
   print_endline ("  - Experience: " ^ (exp_print_string p.experience));
   if p.role <> "" then print_endline ("  - Role: " ^ p.role);
-  if p.github_url <> "" then print_endline ("  - Github: " ^ p.github_url)
+  if p.github_url <> "" then print_endline ("  - Github: " ^ p.github_url);
+  if p.email <> "" then print_endline ("  - Email: " ^ p.email)
