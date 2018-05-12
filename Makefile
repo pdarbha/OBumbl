@@ -3,3 +3,9 @@ repl:
 
 clean:
 	ocamlbuild -clean
+
+test:
+		ocamlbuild -use-ocamlfind test.byte && ./test.byte
+
+gui:
+	ocamlbuild -use-ocamlfind gui.byte && ./gui.byte
