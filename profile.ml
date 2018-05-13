@@ -272,6 +272,7 @@ let rec create_profile id =
 
 let rec lookup_profile id =
   let jProfileString = http_get (get_prof_url ^ (string_of_int id)) in
+  let () = print_endline jProfileString in
   if jProfileString = "-1"
     then (create_profile id; lookup_profile id)
   else init_profile (from_string jProfileString)
