@@ -25,7 +25,12 @@ type group = {group_id : int; user_id_list: int list; purpose : string; size : i
 let empty_group = {group_id = -1; user_id_list = []; purpose = ""; size = 0;
               range = (0,0); group_blacklist = []; invited_groups_list = [];
               received_invites_list = []; schedule = []}
-
+(*
+ * [day_to_string d] is a string representation of [d]
+ * This is different from [day_to_string_for_repl] which is used for printing
+ *    in the repl but this is used for storing the schedule in the database.
+ * requires: [d] to be of type day
+ *)
 let day_to_string d=
   match d with
   |Sun -> "Sun "
@@ -36,6 +41,12 @@ let day_to_string d=
   |Fri -> "Fri "
   |Sat -> "Sat "
 
+(*
+ * [day_from_string d] converts [d] from string to type day
+ * This is called when parsing the string from the json so the string will
+ *    only be one of these 7 strings.
+ * requires: [d] to be a string
+ *)
 let day_from_string d=
   match d with
   |"Sun" -> Sun
@@ -46,32 +57,61 @@ let day_from_string d=
   |"Fri" -> Fri
   |"Sat" -> Sat
 
+(*
+ * [times_from_string s] converts the string representing the list of times
+ *    to an (int*int) list representing the beginning and end of the time
+ * requires: s to be a string
+ *)
 let times_from_string s =
+  if s = "" then [] else
   let times = String.split_on_char ',' s in
   List.map (fun s -> let sep = (String.index s '-') + 1 in
                      let len = String.length s in
                      (int_of_string (String.sub s 0 (sep-1)),
                       int_of_string (String.sub s (sep) (len-sep)))) times
 
+(*
+ * [schedule_from_string s] converts the string representing the schedule
+ *    to a schedule which has type schedule
+ * requires: s to be a string
+ *)
 let schedule_from_string s =
+  if s = "" then [] else
   let scheds = String.split_on_char ';' s in
   List.map (fun s -> (day_from_string (String.sub s 0 3),
                       times_from_string (String.sub s 4 ((String.length s)-4)))) scheds
 
+(*
+ * [times_to_string l] converts [l] to a string that has all the information
+ *    to store in the database
+ * requires: [l] to be a (int*int) list
+ *)
 let times_to_string l =
   match l with
   |[] -> ""
   | _ ->
-    let s = List.fold_left (fun acc (b,e) -> acc^(string_of_int b)^"-"^(string_of_int e)^",") "" l in
+    let s = List.fold_left
+            (fun acc (b,e) -> acc^(string_of_int b)^"-"^(string_of_int e)^",") "" l in
     String.sub s 0 ((String.length s)-1)
 
+(*
+ * [schedule_to_string l] converts [sched] to a string that has all the information
+ *    to store in the database
+ * requires: [sched] to be of type schedule
+ *)
 let schedule_to_string sched =
   match sched with
   |[] -> ""
   |_ ->
-    let s = List.fold_left (fun acc (d,l) -> acc^(day_to_string d)^(times_to_string l)^";") "" sched in
+    let s = List.fold_left
+            (fun acc (d,l) -> acc^(day_to_string d)^(times_to_string l)^";") "" sched in
     String.sub s 0 ((String.length s)-1)
 
+(*
+ * [init_group j] parses json [j] and returns the group that contains all the
+ *    information stored in [j]
+ * requires: [j] to be of type Yojson.Basic.json
+ *)
 let init_group j =
   let id = j|>member "group_id"|>to_string|>int_of_string in
   let users = let s = j|>member "user_id_list"|>to_string in
@@ -106,9 +146,15 @@ let update_group_lists params =
   call to init_group. Otherwise, returns empty group. *)
 let lookup_group id =
   let jsonGroupString = http_get (get_group_url ^ (string_of_int id)) in
+  let () = print_endline jsonGroupString in
   if jsonGroupString = "-1" then empty_group else
   init_group (from_string jsonGroupString)
 
+(*
+ * [get_first_time_for_schedule] prompts the user for the beginning of the
+ *    time they are free that day
+ * Terminates when user inputs
+ *)
 let rec get_first_time_for_schedule ()=
   let time1_input = print_read ("\nEnter the start of the time you are free that day"^
                   " in 24 hour time. For example, to say 8:35pm type \"2035\": ") in
@@ -116,12 +162,15 @@ let rec get_first_time_for_schedule ()=
     String.trim
     (if (String.contains time1_input ':')
       then String.sub time1_input 0 (String.index time1_input ':') ^
-           String.sub time1_input ((String.index time1_input ':')+1) ((String.length time1_input)-(String.index time1_input ':')-1)
+           String.sub time1_input ((String.index time1_input ':')+1)
+                      ((String.length time1_input)-(String.index time1_input ':')-1)
      else time1_input) in
   let time1 = try (int_of_string time1_trimmed)
-              with _ -> (print_endline "\nEnter the time as a number";get_first_time_for_schedule()) in
+              with _ -> (print_endline "\nEnter the time as a number";
+                         get_first_time_for_schedule()) in
   if (((time1 mod 100) >59) || ((time1/100)>23) || time1<0)
-    then (print_endline "\nEnter a valid time between 0000 to 2359";get_first_time_for_schedule())
+    then (print_endline "\nEnter a valid time between 0000 to 2359";
+          get_first_time_for_schedule())
   else time1
 
 let rec get_second_time_for_schedule () =
@@ -182,6 +231,7 @@ let rec create_schedule acc=
     |Some day ->
       let curr_times = if List.mem_assoc day acc then List.assoc day acc else [] in
       let times = get_times day curr_times in
+      if times = [] then create_schedule acc else
       create_schedule ((day,times)::(List.remove_assoc day acc))
 
 let time_diff t1 t2 =
@@ -258,10 +308,12 @@ let rec create_group p purpose_list =
 (*[group_to_string g] is a readable string containing the purpose, minimum size
   and maximum size of group [g]*)
 let group_to_string g =
+  let inviting_groups = List.map (fun id -> lookup_group id) g.received_invites_list in
+  let invites_no_empty = List.filter (fun g -> g.group_id <> -1) inviting_groups in
   "Project code : " ^ g.purpose ^ "\nSize: " ^ (string_of_int g.size) ^
   " (min " ^ (string_of_int (fst (g.range))) ^ ", max " ^
   (string_of_int (snd (g.range))) ^ ")\nInvites: " ^
-  (string_of_int (List.length g.received_invites_list)) ^ "\n"
+  (string_of_int (List.length invites_no_empty)) ^ "\n"
 
 (*[find_group_by_code purpose group_list] is None if no group in group_list has
   purpose [purpose] and Some group if a group has a matching purpose.
@@ -293,16 +345,27 @@ let range g = g.range
 (*[purpose g] is the purpose of group [g]*)
 let purpose g = g.purpose
 
+let remove_overlaps_union s1 s2 =
+  let rec remove_overlaps_helper s1 s2 =
+    match s1 with
+    |[] -> s2
+    |(day,l)::t ->
+      if List.mem_assoc day s2 then
+        (day,l@(List.assoc day s2))::(remove_overlaps_helper t (List.remove_assoc day s2))
+      else (day,l)::(remove_overlaps_helper t s2) in
+  remove_overlaps (remove_overlaps_helper s1 s2)
+
 (*[union g1 g2] is a new group with updated fields created by merging two groups*)
 let union g1 g2 =
   let users = int_list_to_string ((g1.user_id_list)@(g2.user_id_list)) in
   let size = string_of_int ((g1.size) + (g2.size)) in
   let range_min = string_of_int (max (fst (g1.range)) (fst (g2.range))) in
   let range_max = string_of_int (min (snd (g1.range)) (snd (g2.range))) in
+  let schedule = schedule_to_string (remove_overlaps_union (g1.schedule) (g2.schedule)) in
   let params = [("user_id_list", users);("purpose", g1.purpose);("size",size);
                 ("range_min", range_min);("range_max", range_max);
                 ("group_blacklist","");("invited_groups_list","");
-                ("received_invites_list","")] in
+                ("received_invites_list",""); ("schedule",schedule)] in
   let update = (insert_group params) in
   if update = "-1" then print_string "Errors occured during group acceptance.\n";
   int_of_string update
@@ -349,13 +412,13 @@ let update_and_return g =
   Going back updates the server to reflect the local user's recent decisions.
 *)
 let rec invites g =
-  if g.received_invites_list = []
+  let inviting_groups = List.map (fun id -> lookup_group id) g.received_invites_list in
+  let invites_no_empty = List.filter (fun g -> g.group_id <> -1) inviting_groups in
+  if invites_no_empty = []
     then (print_endline "\n\nYou have no invitations.\n";
           ignore (update_and_return g))
   else
-    let inviting_groups = List.map (fun id -> lookup_group id) g.received_invites_list in
-    let invites_no_empty = List.filter (fun g -> g.group_id <> -1) inviting_groups in
-    List.iter about_group invites_no_empty;
+    (List.iter about_group invites_no_empty;
     let resp = print_read ("Enter \"accept\" or \"reject\" followed a group's id,"^
                            " or \"back\" to return to the previous page: ") in
     match (String.split_on_char ' ' resp) with
@@ -395,7 +458,7 @@ let rec invites g =
       if update = "-1" then
         (print_string "Updating server unsuccessful, try again.\n";
         invites g)
-    | _ -> print_endline "Invalid response. Try again."; invites g
+    | _ -> print_endline "Invalid response. Try again."; invites g)
 
 (*[show_group_in_swipes g other] returns true if group [other] meets the
   requirements to be shown in the groups that g can swipe through and false otherwise
@@ -605,6 +668,7 @@ let swipe g =
   removed. Groups on the server are updated accordingly.*)
 let rec leave p g =
   let updated_user_ids = (List.filter (fun x -> x<>(user_id p)) g.user_id_list) in
+  (if updated_user_ids <> [] then
   let updated_users = int_list_to_string updated_user_ids in
   let range_min = string_of_int (fst (g.range)) in
   let range_max = string_of_int (snd (g.range)) in
@@ -622,5 +686,5 @@ let rec leave p g =
   else
     let updated_profiles = List.map (fun x -> lookup_profile x) updated_user_ids in
     List.iter (fun x -> ignore (update_server (add_group x (int_of_string update))))
-      updated_profiles;
+      updated_profiles);
     delete_group g
