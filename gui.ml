@@ -8,7 +8,7 @@ let draw_canvas () =
   Graphics.open_graph "1000x750";
   Graphics.set_window_title "OBumbl";
   set_color Graphics.blue;
-  draw_rect 0 0 50 50;
+  draw_rect 0 0 500 500;
 
 
 

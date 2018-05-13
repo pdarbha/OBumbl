@@ -5,7 +5,7 @@ clean:
 	ocamlbuild -clean
 
 test:
-		ocamlbuild -use-ocamlfind test.byte && ./test.byte
+		ocamlbuild -pkg netclient -pkg netstring -pkg yojson -use-ocamlfind test.byte && ./test.byte
 
 gui:
-	ocamlbuild -use-ocamlfind gui.byte && ./gui.byte
+		ocamlbuild -pkg netclient -pkg netstring -pkg yojson -use-ocamlfind gui.byte && ./gui.byte

@@ -3,6 +3,7 @@ open Profile
 open Group
 open Nethttp_client.Convenience
 open Graphics
+open Gui
 
 type lr_variant = Login | Register
 
@@ -107,9 +108,13 @@ let rec login_loop () =
     let group_data = pull_group_data user_profile in
     repl user_profile group_data)
 
-  let gui_loop () =
-      Graphics.open_graph " 100x75";
-      Graphics.set_window_title "OBumbl"
+let gui_loop () =
+    Graphics.open_graph " 1000x750";
+    Graphics.set_window_title "OBumbl";
+    Gui.draw_start_canvas ();
+    let rec loop () = loop () in
+    loop ()
 
-      (*let () = login_loop ()*)
-  let () = gui_loop ()
+
+(* let () = login_loop () *)
+let () = gui_loop ()
