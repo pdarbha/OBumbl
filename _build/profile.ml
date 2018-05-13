@@ -36,6 +36,13 @@ let string_to_exp s =
   else if s = "ADV" then `ADV
   else `BEG
 
+let testprof () =
+  {user_id=69; name ="faggot"; photo = ref "boner"; school =" I Luv dick";
+   group_id_list = []; description= "mybutt";
+   interest_list = ["slurping"]; experience = `BEG;
+   role= "diddler"; looking_for= [`BEG, "whore"];
+   github_url= "d"; email="d"}
+
 (* [string_to_looking_for s] takes in a string s and convers it to list form, to
    represent the looking for category from profile.
  * requires: a string*)
