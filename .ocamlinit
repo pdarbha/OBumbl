@@ -8,3 +8,4 @@ open Nethttp_client.Convenience;;
 #use "helper.ml";;
 #use "profile.ml";;
 #use "group.ml";;
+#load "graphics.cma";;

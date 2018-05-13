@@ -37,6 +37,8 @@ val looking_for : profile -> ([ `BEG | `INT | `ADV ]*string) list
  (* will return a string to a github.com profile URL *)
 val github : profile -> string
 
+val email : profile -> string
+
 (* will accept a profile and two strings (field, value) to be updated and returned in new profile *)
 val edit : profile -> string -> string -> profile
 
@@ -60,3 +62,7 @@ val about_profile : profile -> unit
 val cp_interests : unit -> string list
 
 val cp_looking_for : unit -> ([ `BEG | `INT | `ADV ]*string) list
+
+val string_to_exp : string -> [ `BEG | `INT | `ADV ]
+
+val string_to_looking_for : string -> ([ `BEG | `INT | `ADV ]*string) list

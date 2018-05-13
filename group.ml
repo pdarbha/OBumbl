@@ -131,6 +131,10 @@ let init_group j =
    range = (range_min,range_max); schedule = schedule; group_blacklist = blacklist;
    invited_groups_list = invited; received_invites_list = received}
 
+let invited_groups g = g.invited_groups_list
+
+let groupid g = g.group_id
+
 let insert_group params =
   http_post insert_group_url params
 

@@ -2,6 +2,8 @@ open Helper
 open Profile
 open Group
 open Nethttp_client.Convenience
+open Graphics
+open Gui
 
 type lr_variant = Login | Register
 
@@ -108,4 +110,30 @@ let rec login_loop () =
     let group_data = pull_group_data user_profile in
     repl user_profile group_data)
 
-let () = login_loop ()
+let rec login_loop_gui () =
+  let lr = login_or_register () in
+  let user_id = int_of_string (snd lr) in
+  if user_id = -1 then
+    (print_string ((match fst lr with Login -> "Login" | Register -> "Register") ^
+                   " unsuccessful.\n");
+     login_loop ())
+  else
+    ((if (fst lr) = Register then create_profile user_id else ());
+     let user_profile = lookup_profile user_id in
+     let group_data = pull_group_data user_profile in
+     Graphics.open_graph " 1000x750";
+     Graphics.set_window_title "OBumbl";
+     Gui.draw_start_canvas user_profile group_data;
+     let rec loop () = loop () in
+     loop ()
+    )
+
+let gui_loop () =
+    Graphics.open_graph " 1000x750";
+    Graphics.set_window_title "OBumbl";
+    Gui.draw_start_canvas (Profile.testprof ()) Group.empty_group ;
+    let rec loop () = loop () in
+    loop ()
+
+(* let () = login_loop () *)
+let () = login_loop_gui ()
