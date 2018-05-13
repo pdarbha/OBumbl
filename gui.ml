@@ -281,8 +281,7 @@ and bd_listener_no_groups p gd =
   let coords = s.mouse_x, s.mouse_y in
   (*if button_down () then*)
   match coords with
-  |(x,y) -> if x > (size_x () - 70) && x < (size_x () - 20) then
-      if (y > (size_y () - 600)) && (y < (size_y () - 580)) then
+  |(x,y) -> if x > (size_x () - 70) && x < (size_x () - 20) && (y > (size_y () - 600)) && (y < (size_y () - 580)) then
         welcome_screen p gd
       else if
         x > (size_x () - 30) && x < (size_x () - 10) && y > (size_y () -30)

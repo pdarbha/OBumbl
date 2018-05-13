@@ -126,12 +126,12 @@ let rec login_loop_gui () =
      loop ()
     )
 
-let gui_loop () =
+(*let gui_loop () =
     Graphics.open_graph " 1000x750";
     Graphics.set_window_title "OBumbl";
     Gui.draw_start_canvas (Profile.testprof ()) Group.empty_group ;
     let rec loop () = loop () in
-    loop ()
+    loop ()*)
 
 (* let () = login_loop () *)
 let () = login_loop_gui ()
