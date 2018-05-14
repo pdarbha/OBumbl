@@ -126,7 +126,8 @@ let draw_profile (p:profile) =
   moveto ((size_x () / 2) + 20) ((size_y ())/2 + 140);
   draw_string ("Top 3 Interests: "^(top3interests (Profile.interests p)));
   moveto ((size_x () / 2) + 20) ((size_y ())/2 + 120);
-  draw_string ("Description: "^(Profile.description p))
+  draw_string ("Description: "^(Profile.description p));
+  draw_image(create_image 100 100) ((size_x () / 2) + 20) ((size_y ())/2)
 
   (*description_drawer (Profile.description p) 355 ((size_x () / 2) + 20) ((size_y ())/2 + 120)*)
 
@@ -434,6 +435,7 @@ and view_profile_screen p gd =
   draw_string ("github: "^(p |> Profile.github));
   moveto ((size_x () / 2) -300) ((size_y ())/2 + 55);
   draw_string ("email: "^(p |> Profile.email));
+  draw_image(create_image 100 100) ((size_x () / 2) - 300) ((size_y ())/2 - 65);
   (*description_drawer (Profile.description p) 650 ((size_x () / 2) -300) ((size_y ())/2 + 135)*)
   draw_rect (70) (size_y () - 600) 80 20;
   moveto (72) (size_y () -598);
