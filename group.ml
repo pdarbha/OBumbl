@@ -345,6 +345,12 @@ let range g = g.range
 (*[purpose g] is the purpose of group [g]*)
 let purpose g = g.purpose
 
+(*[users g] gets the list of users of group [g]*)
+let users g = g.user_id_list
+
+(*[schedule g] gets the schedule of group [g]*)
+let schedule g = g.schedule
+
 let remove_overlaps_union s1 s2 =
   let rec remove_overlaps_helper s1 s2 =
     match s1 with
@@ -405,6 +411,11 @@ let update_and_return g =
                 ("invited_groups_list",invited)] in
   (update_group_lists params)
 
+let rec invites_received g =
+let inviting_groups = List.map (fun id -> lookup_group id) g.received_invites_list in
+List.filter (fun g -> g.group_id <> -1) inviting_groups
+
+
 (*[invites g] helps manage the invites that a group g has received. User can choose to
   accept or reject an invite or to leave the invite manager screen. Accepting an
   invite forms a new group, and deletes the user's group and the group they joined.
@@ -460,6 +471,31 @@ let rec invites g =
         invites g)
     | _ -> print_endline "Invalid response. Try again."; invites g)
 
+let rec gui_invites_accept g og =
+    (delete_group g;
+     delete_group og;
+     let profile_union = List.map (fun id -> lookup_profile id)
+         ((g.user_id_list)@(og.user_id_list)) in
+     let update = union g og in
+     if update <> -1
+     then List.iter (fun p -> ignore (update_server (add_group p update)))
+         profile_union)
+
+let rec gui_invites_reject g ogid =
+    let new_blacklist = if List.mem ogid g.group_blacklist then g.group_blacklist
+      else (ogid)::(g.group_blacklist) in
+    let g' = {g with
+            received_invites_list =
+                (List.filter (fun x -> x<>ogid) (g.received_invites_list));
+            group_blacklist = new_blacklist} in
+      g'
+
+let rec gui_back g =
+  let update = update_and_return g in
+  if update = "-1" then
+  print_string "Updating server unsuccessful, try again.\n"
+
+
 (*[show_group_in_swipes g other] returns true if group [other] meets the
   requirements to be shown in the groups that g can swipe through and false otherwise
 *)
@@ -481,6 +517,7 @@ let get_groups_with_purpose g =
   let json_list = from_string json_string|>to_list in
   let group_list = List.map (init_group) json_list in
   List.filter (show_group_in_swipes g) group_list
+
 
 let rec total_minutes acc sched =
   match sched with
@@ -608,7 +645,13 @@ let total_score g other =
   let schedule_weight = 1.0 in
   (schedule_weight *. (schedule_score g other)) +.
     (interest_weight *. (interests_score g other)) +.
-    (looking_for_weight *. (score_determination g other))
+  (looking_for_weight *. (score_determination g other))
+
+  let get_sorted_groups g =
+    let groups_to_be_matched = get_groups_with_purpose g in
+    List.sort (fun g1 g2 -> if (total_score g g1)<(total_score g g2) then 1
+                        else if (total_score g g1)>(total_score g g2) then -1 else 0)
+      groups_to_be_matched
 
 (*[swipe g] produces a list of groups that can be swiped through by group g sorted
   from highest to lowest match score
@@ -662,7 +705,38 @@ let swipe g =
         swipe_repl g' t
       |"done"::_ -> print_endline "Returning to previous page."
       | _ -> print_endline "Not a valid command."; swipe_repl g others in
-        swipe_repl g sorted
+  swipe_repl g sorted
+
+let blacklist g ogid =
+  let new_blacklist = (ogid)::(g.group_blacklist) in
+  let blacklist_str = int_list_to_string new_blacklist in
+  let received = int_list_to_string (g.received_invites_list) in
+  let invited = int_list_to_string (g.invited_groups_list) in
+  let params = [("group_id", (string_of_int g.group_id));
+              ("group_blacklist",blacklist_str);
+              ("received_invites_list",received);
+                ("invited_groups_list",invited)] in
+  ignore (update_group_lists params);
+ let g' = {g with group_blacklist = new_blacklist} in g'
+
+let invite_helper g og =
+  let g' = {g with invited_groups_list = (og.group_id)::g.invited_groups_list} in
+  let params_h = [("group_id", string_of_int (og.group_id));
+                ("group_blacklist", int_list_to_string og.group_blacklist);
+                ("invited_groups_list",
+                    int_list_to_string (og.invited_groups_list));
+                ("received_invites_list",
+                    int_list_to_string
+                        ((g.group_id)::(og.received_invites_list)))] in
+  ignore (update_group_lists params_h);
+  let params_g = [("group_id", string_of_int (g.group_id));
+                ("group_blacklist", int_list_to_string g.group_blacklist);
+                ("invited_groups_list",
+                    int_list_to_string (g'.invited_groups_list));
+                ("received_invites_list",
+                    int_list_to_string (g.received_invites_list))] in
+  ignore (update_group_lists params_g);
+  g'
 
 (*[leave p g] is a new group formed by re-creating group g except with profile [p]
   removed. Groups on the server are updated accordingly.*)

@@ -1,6 +1,7 @@
 open Graphics
 open Profile
 open Group
+open Helper
 (*open Camlimages
   open Images
   open Elements
@@ -96,19 +97,21 @@ let top3interests lst =
   |h::[] -> h
   |[] -> "none"
 
-let rec description_drawer d xsize x y =
+(*let rec description_drawer d xsize x y =
   moveto x y;
   if fst (text_size d) <= xsize then draw_string ("description: "^d)
   else draw_string (String.sub d 0 (String.length d / (fst (text_size d)/ xsize)+1));
   description_drawer
     (String.sub d ((String.length d / (fst (text_size d)/ xsize)+1)+1) (String.length d))
-    xsize x (y-15)
+    xsize x (y-15)*)
 
 
 
 let draw_profile (p:profile) =
+  set_color (Graphics.white);
   fill_rect ((size_x () / 2)) ((size_y () / 2) - 50)
     375 310;
+  set_color (Graphics.black);
   moveto ((size_x () / 2) + 180) ((size_y ())/2 + 240);
   draw_string ("user id: "^(string_of_int (p |> Profile.user_id)));
   moveto ((size_x () / 2) + 20) ((size_y ())/2 + 220);
@@ -122,63 +125,63 @@ let draw_profile (p:profile) =
                                                                Profile.looking_for)));
   moveto ((size_x () / 2) + 20) ((size_y ())/2 + 140);
   draw_string ("Top 3 Interests: "^(top3interests (Profile.interests p)));
-  description_drawer (Profile.description p) 355 ((size_x () / 2) + 20) ((size_y ())/2 + 120)
+  moveto ((size_x () / 2) + 20) ((size_y ())/2 + 120);
+  draw_string ("Description: "^(Profile.description p))
+
+  (*description_drawer (Profile.description p) 355 ((size_x () / 2) + 20) ((size_y ())/2 + 120)*)
 
 
 
-
-let swipe_screen p gd =
+    (*
+let invite_screen p il gd c ic =
   clear_graph ();
   quit_button ();
   back_button ();
   draw_rect ((size_x () / 2) - 400) ((size_y ())/2 - 100)
     800 400;
+  if List.length il = 0 then
+    (moveto ((size_x () / 2) - 100) ((size_y ())/2 +100);
+     draw_string "No invites for this group. Please go back")
+  else
+    let g = (List.nth il c) in
   draw_rect ((size_x () / 2) - 400) ((size_y () / 2) - 175)
     100 50;
   draw_rect ((size_x () / 2) + 300) ((size_y () / 2) - 175)
     100 50;
+  draw_rect ((size_x () / 2) - 50) ((size_y () / 2) - 175)
+    100 50;
   moveto ((size_x () / 2) - 370) ((size_y ())/2 - 155);
   draw_string "Reject";
   moveto ((size_x () / 2) + 330) ((size_y ())/2 - 155);
-  draw_string "Invite";
+  draw_string "Accept";
+  moveto ((size_x () / 2) -20) ((size_y ())/2 - 155);
+  draw_string "Next";
   moveto ((size_x () / 2) - 50) ((size_y ())/2 + 270);
-  draw_string ("Groupid: " ^ "placeholder");
+  (*draw_string ("Groupid: " ^ (Group.groupid (List.nth gd c)));*)
   moveto ((size_x () / 2) - 350) ((size_y ())/2 + 225);
-  draw_string ("Purpose: " ^ "placeholder");
+  draw_string ("Purpose: " ^ (Group.purpose g));
   moveto ((size_x () / 2) - 350) ((size_y ())/2 + 175);
-  draw_string ("Size: " ^ "placeholder");
+  draw_string ("Size: " ^ (string_of_int (Group.size g)));
   moveto ((size_x () / 2) - 350) ((size_y ())/2 + 125);
-  draw_string ("Range: " ^ "placeholder");
+  draw_string ("Range: " ^ "("^string_of_int(fst(Group.range g))^", "^string_of_int(snd(Group.range g))^")");
   set_color Graphics.cyan;
-  fill_rect ((size_x () / 2)) ((size_y () / 2) - 50)
-    375 310;
+  (*fill_rect ((size_x () / 2)) ((size_y () / 2) - 50)
+    375 310;*)
   set_color Graphics.black;
-  draw_rect ((size_x () / 2)) ((size_y () / 2) - 80)
-    50 20;
+  draw_profile (Profile.lookup_profile (List.nth (Group.users g) ic));
   draw_rect ((size_x () / 2) + 325) ((size_y () / 2) - 80)
     50 20;
-  moveto ((size_x () / 2) + 10) ((size_y ())/2 - 75);
-  draw_string "Prev";
   moveto ((size_x () / 2) + 340) ((size_y ())/2 - 75);
-  draw_string "Next"(*implement functionality*)
+  draw_string "Next";
+  bd_invite_listener*)
 
-
-let invite_screen p gd =
-  clear_graph ();
-  quit_button ();
-  back_button ();
-  draw_rect ((size_x () / 2) - 400) ((size_y ())/2 - 100)
-    800 400;
-  draw_rect ((size_x () / 2) - 400) ((size_y () / 2) - 175)
-    100 50;
-  draw_rect ((size_x () / 2) + 300) ((size_y () / 2) - 175)
-    100 50;
-  moveto ((size_x () / 2) - 370) ((size_y ())/2 - 155);
-  draw_string "Reject";
-  moveto ((size_x () / 2) + 330) ((size_y ())/2 - 155);
-  draw_string "Accept"
 
 exception Oe of string
+
+let rec filterer il g =
+  match il with
+  |[] -> []
+  |h::t -> if h = g then filterer t g else h::filterer t g
 
 (*let view_profile_screen p gd =
   clear_graph ()
@@ -276,31 +279,51 @@ let rec welcome_screen p gd =
   draw_string "View Profile";
   bd_welcome_screen p gd
 
-and bd_listener_no_groups p gd =
+  and bd_listener_view_profile p gd =
+    let s = wait_next_event [Button_down] in
+    let coords = s.mouse_x, s.mouse_y in
+    (*if button_down () then*)
+    match coords with
+    |(x,y) -> if x > (size_x () - 70) && x < (size_x () - 20) && (y > (size_y () - 600)) && (y < (size_y () - 580)) then
+          welcome_screen p gd
+        else if
+          x > (size_x () - 30) && x < (size_x () - 10) && y > (size_y () -30)
+          && y < (size_y () - 10)
+        then failwith "quitting" else
+        if x > (70) && x < 150 && y > (size_y () - 600)
+           && y < (size_y () - 580) then edit_profile_screen p gd
+        else
+          bd_listener_view_profile p gd
+
+and bd_listener_no_groups p gd swipes =
   let s = wait_next_event [Button_down] in
   let coords = s.mouse_x, s.mouse_y in
   (*if button_down () then*)
   match coords with
   |(x,y) -> if x > (size_x () - 70) && x < (size_x () - 20) && (y > (size_y () - 600)) && (y < (size_y () - 580)) then
-        welcome_screen p gd
+      (if swipes then groups_screen p gd 0 0 else welcome_screen p gd)
       else if
         x > (size_x () - 30) && x < (size_x () - 10) && y > (size_y () -30)
         && y < (size_y () - 10)
-      then failwith "quitting" else bd_listener_no_groups p gd
+      then failwith "quitting" else bd_listener_no_groups p gd swipes
 
-and groups_screen p gd c ic =
+
+and groups_screen p' gd' c ic =
+  let p = lookup_profile (Profile.user_id p') in
+  let gd = pull_group_data p in
   clear_graph ();
   quit_button ();
   back_button ();
   draw_rect ((size_x () / 2) - 400) ((size_y ())/2 - 100)
     800 400;
   try (let g = Group.lookup_group (List.nth (Profile.groups p) c) in
-       draw_rect ((size_x () / 2) - 400) ((size_y () / 2) - 175)
-         100 50;
+      set_color Graphics.black;
+       (*draw_rect ((size_x () / 2) - 400) ((size_y () / 2) - 175)
+         100 50;*)
        draw_rect ((size_x () / 2) + 300) ((size_y () / 2) - 175)
          100 50;
-       moveto ((size_x () / 2) - 370) ((size_y ())/2 - 155);
-       draw_string "Prev";
+       (*moveto ((size_x () / 2) - 370) ((size_y ())/2 - 155);
+         draw_string "Prev";*)
        moveto ((size_x () / 2) + 330) ((size_y ())/2 - 155);
        draw_string "Next"; (*fix functionality*)
        moveto ((size_x () / 2) - 50) ((size_y ())/2 + 270);
@@ -311,16 +334,20 @@ and groups_screen p gd c ic =
        draw_string ("Size: " ^ (string_of_int (Group.size g)));
        moveto ((size_x () / 2) - 350) ((size_y ())/2 + 125);
        draw_string ("Range: " ^ "("^string_of_int(fst(Group.range g))^", "^string_of_int(snd(Group.range g))^")");
-       set_color Graphics.cyan;
-       fill_rect ((size_x () / 2)) ((size_y () / 2) - 50)
-         375 310;
+       moveto ((size_x () / 2) - 350) ((size_y ())/2 + 75);
+      draw_string ("Schedule: " ^ Group.schedule_to_string (Group.schedule g));
+      set_color Graphics.cyan;
+
+       (*fill_rect ((size_x () / 2)) ((size_y () / 2) - 50)
+         375 310;*)
        set_color Graphics.black;
-       draw_rect ((size_x () / 2)) ((size_y () / 2) - 80)
-         50 20;
+       draw_profile (Profile.lookup_profile (List.nth (Group.users g) ic));
+       (*draw_rect ((size_x () / 2)) ((size_y () / 2) - 80)
+         50 20;*)
        draw_rect ((size_x () / 2) + 325) ((size_y () / 2) - 80)
          50 20;
-       moveto ((size_x () / 2) + 10) ((size_y ())/2 - 75);
-       draw_string "Prev";
+       (*moveto ((size_x () / 2) + 10) ((size_y ())/2 - 75);
+         draw_string "Prev";*)
        moveto ((size_x () / 2) + 340) ((size_y ())/2 - 75);
        draw_string "Next";
        draw_rect ((size_x () / 2) + 425) ((size_y ())/2 + 200)
@@ -331,52 +358,53 @@ and groups_screen p gd c ic =
          100 50;
        moveto ((size_x () / 2) + 430) ((size_y ())/2 +130);
        draw_string ("Invite List")(*^" ("^(string_of_int (List.length (Group.invited_groups (List.nth gd c))))^")")*);
-       bd_listener_groups_screen p gd c ic)
+       draw_rect ((size_x () / 2) - 400) ((size_y () / 2) - 175)
+         100 50;
+       moveto ((size_x () / 2) - 390) ((size_y ())/2 -155);
+        draw_string ("Leave Group")(*^" ("^(string_of_int (List.length (Group.invited_groups (List.nth gd c))))^")")*);
+      bd_listener_groups_screen p gd c ic)
   with Failure("nth") -> moveto ((size_x () / 2) - 350) ((size_y ())/2 + 195);
     draw_string "You have no groups to display. Go back and create a group.";
-    bd_listener_no_groups p gd
+    bd_listener_no_groups p gd false
 
 and bd_welcome_screen p gd =
   let s = wait_next_event [Button_down] in
   let coords = s.mouse_x, s.mouse_y in
-  (*if button_down () then*)
   match coords with
-  |(x,y) -> if (x > (((size_x () * 2)/5) - 300) && x < (((size_x () * 2)/5)) &&
-                y > ((size_y ())/5 + 200) && y < ((size_y ())/5 + 300)) then groups_screen p gd 0 0
+  |(x,y) -> if x > (((size_x () * 2)/5) - 300) && x < (((size_x () * 2)/5)) &&
+                y > ((size_y ())/5 + 200) && y < ((size_y ())/5 + 300) then groups_screen p gd 0 0
   (*else if y > (((size_y ())/5)+ 90) && y < (((size_y ())/5)+190) then
     invite_screen ()*)
-    else if x >  ((size_x () * 4)/5 - 200) && x < ((size_x () * 4)/5 +100)
-    then if
-      y >  (size_y ()/2 + 100) && y < (size_y ()/2 + 200) then
-        new_group_screen p gd else if
-        y > ((size_y ()/2) - 50) && y < ((size_y ()/2) +50) then
-        view_profile_screen p gd else if
+    else if x >  ((size_x () * 4)/5 - 200) && x < ((size_x () * 4)/5 +100) &&
+            y >  (size_y ()/2 + 100) && y < (size_y ()/2 + 200) then
+      new_group_screen p gd
+    else if x >  ((size_x () * 4)/5 - 200) && x < ((size_x () * 4)/5 +100) &&
+            y > ((size_y ()/2) - 100) && y < ((size_y ()/2)) then
+      view_profile_screen p gd
+    else if
         x > (size_x () - 30) && x < (size_x () - 10) && y > (size_y () -30)
         && y < (size_y () - 10)
-      then failwith "quitting" else bd_welcome_screen p gd else bd_welcome_screen p gd
+      then failwith "quitting" else bd_welcome_screen p gd
 
 and bd_listener_groups_screen p gd c ic =
   let s = wait_next_event [Button_down] in
   let coords = s.mouse_x, s.mouse_y in
   match coords with
   |(x,y) ->
-    if x > (size_x () - 70) && x < (size_x () - 20) then
-      if (y > (size_y () - 600)) && (y < (size_y () - 580)) then
+    if x > (size_x () - 70) && x < (size_x () - 20) && (y > (size_y () - 600)) && (y < (size_y () - 580)) then
         welcome_screen p gd
       else if
         x > (size_x () - 30) && x < (size_x () - 10) && y > (size_y () -30)
         && y < (size_y () - 10)
       then failwith "quitting" else
-      if y > ((size_y () / 2) - 175) && y < ((size_y () / 2) - 125) then
-        (if x > ((size_x () / 2) - 400) && x < ((size_x () / 2) - 300) then
-           groups_screen p gd ((c-1) mod (List.length gd)) 0
-         else if  x > ((size_x () / 2) + 300) && x < ((size_x () / 2) + 400) then groups_screen p gd ((c+1) mod (List.length gd)) 0
-         else if y > ((size_y () / 2) - 80) && y < ((size_y () / 2) - 60) then
-           (if x > ((size_x () / 2)) && x < ((size_x () / 2) + 50) then groups_screen p gd c ((ic-1) mod (List.length gd)))
-         else if x > ((size_x () / 2)+325) && x < ((size_x () / 2) + 375) then groups_screen p gd c ((ic-1) mod (List.length gd)))
-      else if x > ((size_x () / 2) + 425) && x < ((size_x () / 2) + 525) then
-        (if y> ((size_y ())/2 + 200) && y < ((size_y ())/2 + 250) then swipe_screen p gd
-         else if y > ((size_y ())/2 + 125) && y < ((size_y ())/2 + 175) then invite_screen p gd)
+      if y > ((size_y () / 2) - 175) && y < ((size_y () / 2) - 125) && x > ((size_x () / 2) + 300) && x < ((size_x () / 2) + 400) then groups_screen p gd ((c+1) mod (List.length gd)) 0
+         else if y > ((size_y () / 2) - 80) && y < ((size_y () / 2) - 60) && x > ((size_x () / 2)+325) && x < ((size_x () / 2) + 375) then groups_screen p gd c ((ic+1) mod (List.length (Group.users (Group.lookup_group (List.nth (Profile.groups p) c)))))
+         else if x > ((size_x () / 2) + 425) && x < ((size_x () / 2) + 525) && y> ((size_y ())/2 + 200) && y < ((size_y ())/2 + 250) then
+         swipe_screen_helper (Group.lookup_group (List.nth (Profile.groups p) c)) p gd
+         else if x > ((size_x () / 2) + 425) && x < ((size_x () / 2) + 525) && y > ((size_y ())/2 + 125) && y < ((size_y ())/2 + 175) then invite_screen p (Group.invites_received (Group.lookup_group (List.nth (Profile.groups p) c))) (Group.lookup_group (List.nth (Profile.groups p) c)) 0 0 gd
+         else if x > ((size_x () / 2) - 400) && x < ((size_x () / 2) - 300) && y > ((size_y () / 2) - 175) && y < ((size_y () / 2) - 125) then
+           ((Group.leave p (Group.lookup_group (List.nth (Profile.groups p) c)));
+            groups_screen p gd 0 0)
       else bd_listener_groups_screen p gd c ic
 
 and view_profile_screen p gd =
@@ -402,21 +430,183 @@ and view_profile_screen p gd =
   draw_string ("Top 3 Interests: "^(top3interests (Profile.interests p)));
   moveto ((size_x () / 2) -300) ((size_y ())/2 + 135);
   draw_string ("Description: "^(Profile.description p));
-  moveto ((size_x () / 2) -300) ((size_y ())/2 + 115);
+  moveto ((size_x () / 2) -300) ((size_y ())/2 + 75);
   draw_string ("github: "^(p |> Profile.github));
-  moveto ((size_x () / 2) -300) ((size_y ())/2 + 105);
-  (*draw_string ("email: "^(p |> Profile.email));*)
+  moveto ((size_x () / 2) -300) ((size_y ())/2 + 55);
+  draw_string ("email: "^(p |> Profile.email));
   (*description_drawer (Profile.description p) 650 ((size_x () / 2) -300) ((size_y ())/2 + 135)*)
-  draw_rect (size_x () + 70) (size_y () - 600) 70 20;
-  moveto (size_x () +72) (size_y () -598);
-  draw_string "Edit Profile"
+  draw_rect (70) (size_y () - 600) 80 20;
+  moveto (72) (size_y () -598);
+  draw_string "Edit Profile";
+  bd_listener_view_profile p gd
 
 and new_group_screen p gd =
   close_graph ();
   let purpose_list = List.map (fun g -> purpose g) gd in
   create_group p purpose_list;
   let p' = lookup_profile (user_id p) in
+  Graphics.open_graph " 1000x750";
   draw_start_canvas p' (pull_group_data p')
+
+and edit_profile_screen p gd =
+  close_graph ();
+  let field = print_read ("Type the field you would like to edit (\"name\","^
+                          " \"school\", \"description\", \"interest_list\","^
+                          " \"experience\", \"role\", \"looking_for\", "^
+                          "\"github_url\", or ): \"email\"): ") in
+  let field_value =
+    (match field with
+    | "name" | "school" | "description" | "experience" | "role" | "github_url" | "email" ->
+      print_read ("What would you like as your new " ^ field ^ "? ")
+    | "interest_list" -> list_to_string (cp_interests ())
+    | "looking_for" -> looking_for_to_string (cp_looking_for ())
+    | _ -> print_string "Invalid field.\n"; "") in
+  if (((field = "name" && field_value <> "") || field <> "name") &&
+      update_server (edit p field field_value) = true)
+    then ()
+    else print_string "Profile edit unsuccessful.\n";
+    let p' = lookup_profile (user_id p) in
+    Graphics.open_graph " 1000x750";
+    view_profile_screen p' (pull_group_data p')
+
+and swipe_screen_helper g p gd =
+  let sorted = Group.get_sorted_groups g
+  in swipe_screen g p sorted gd 0
+
+and swipe_screen g p s gd ic =
+  clear_graph ();
+  quit_button ();
+  back_button ();
+  draw_rect ((size_x () / 2) - 400) ((size_y ())/2 - 100)
+    800 400;
+  if (List.length s) = 0 then (
+    moveto ((size_x () / 2) - 25) ((size_y ())/2);
+    draw_string "There are no more groups to swipe through. Return to previous page";
+    bd_listener_no_groups p gd true
+  )
+  else
+  draw_rect ((size_x () / 2) - 400) ((size_y () / 2) - 175)
+    100 50;
+  draw_rect ((size_x () / 2) + 300) ((size_y () / 2) - 175)
+    100 50;
+  moveto ((size_x () / 2) - 370) ((size_y ())/2 - 155);
+  draw_string "Reject";
+  moveto ((size_x () / 2) + 330) ((size_y ())/2 - 155);
+  draw_string "Invite";
+  moveto ((size_x () / 2) - 50) ((size_y ())/2 + 270);
+  (*draw_string ("Groupid: " ^ (Group.groupid (List.hd s)));*)
+  moveto ((size_x () / 2) - 350) ((size_y ())/2 + 225);
+  draw_string ("Purpose: " ^ (Group.purpose (List.hd s)));
+  moveto ((size_x () / 2) - 350) ((size_y ())/2 + 175);
+  draw_string ("Size: " ^ string_of_int (Group.size (List.hd s)));
+  moveto ((size_x () / 2) - 350) ((size_y ())/2 + 125);
+  draw_string ("Range: " ^ "("^string_of_int(fst(Group.range (List.hd s)))^", "^string_of_int(snd(Group.range (List.hd s)))^")");
+  moveto ((size_x () / 2) - 350) ((size_y ())/2 + 75);
+  draw_string ("Schedule: " ^ Group.schedule_to_string (Group.schedule (List.hd s)));
+  set_color Graphics.cyan;
+  draw_rect ((size_x () / 2)) ((size_y () / 2) - 50)
+    375 310;
+  set_color Graphics.black;
+  draw_profile (Profile.lookup_profile (List.nth (Group.users (List.hd s)) ic));
+  draw_rect ((size_x () / 2) + 325) ((size_y () / 2) - 80)
+    50 20;
+  moveto ((size_x () / 2) + 340) ((size_y ())/2 - 75);
+  draw_string "Next";(*implement functionality*)
+  bd_swipe_listener g p s gd ic
+
+and bd_swipe_listener g p so gd ic =
+  let s = wait_next_event [Button_down] in
+  let coords = s.mouse_x, s.mouse_y in
+  match coords with
+  |(x,y) ->
+    if x > (size_x () - 70) && x < (size_x () - 20) && (y > (size_y () - 600)) && (y < (size_y () - 580)) then
+      welcome_screen p gd
+  else if
+    x > (size_x () - 30) && x < (size_x () - 10) && y > (size_y () -30)
+    && y < (size_y () - 10)
+  then failwith "quitting" else
+  if x > ((size_x () / 2) + 325) && x < ((size_x () / 2) + 375) && (y > ((size_y () / 2) - 80)) && (y < ((size_y () / 2) - 60)) then
+    swipe_screen g p so gd ((ic+1) mod (List.length (Group.users (List.hd so)))) else
+  if x > ((size_x () / 2) - 400) && x < ((size_x () / 2) -300) && (y > ((size_y () / 2) - 175)) && (y < ((size_y () / 2) - 125)) then
+    swipe_screen (Group.blacklist g (Group.groupid (List.hd so))) p (List.tl so) gd ic
+  else if x > ((size_x () / 2) + 300) && x < ((size_x () / 2) +400) && (y > ((size_y () / 2) - 175)) && (y < ((size_y () / 2) - 125))
+  then
+     swipe_screen (Group.invite_helper g (List.hd so)) p (List.tl so) gd ic
+  else bd_swipe_listener g p so gd ic
+
+and invite_screen p il g c ic gd =
+  clear_graph ();
+  quit_button ();
+  back_button ();
+  draw_rect ((size_x () / 2) - 400) ((size_y ())/2 - 100)
+    800 400;
+  if List.length il = 0 then
+    (moveto ((size_x () / 2) - 100) ((size_y ())/2 +100);
+     draw_string "No invites for this group. Please go back";
+      bd_listener_no_groups p gd true)
+  else
+    let g' = (List.nth il c) in
+  draw_rect ((size_x () / 2) - 400) ((size_y () / 2) - 175)
+    100 50;
+  draw_rect ((size_x () / 2) + 300) ((size_y () / 2) - 175)
+    100 50;
+  draw_rect ((size_x () / 2) - 50) ((size_y () / 2) - 175)
+    100 50;
+  moveto ((size_x () / 2) - 370) ((size_y ())/2 - 155);
+  draw_string "Reject";
+  moveto ((size_x () / 2) + 330) ((size_y ())/2 - 155);
+  draw_string "Accept";
+  moveto ((size_x () / 2) -20) ((size_y ())/2 - 155);
+  draw_string "Next";
+  moveto ((size_x () / 2) - 50) ((size_y ())/2 + 270);
+  (*draw_string ("Groupid: " ^ (Group.groupid (List.nth gd c)));*)
+  moveto ((size_x () / 2) - 350) ((size_y ())/2 + 225);
+  draw_string ("Purpose: " ^ (Group.purpose g'));
+  moveto ((size_x () / 2) - 350) ((size_y ())/2 + 175);
+  draw_string ("Size: " ^ (string_of_int (Group.size g')));
+  moveto ((size_x () / 2) - 350) ((size_y ())/2 + 125);
+  draw_string ("Range: " ^ "("^string_of_int(fst(Group.range g'))^", "^string_of_int(snd(Group.range g'))^")");
+  set_color Graphics.cyan;
+  (*fill_rect ((size_x () / 2)) ((size_y () / 2) - 50)
+    375 310;*)
+  set_color Graphics.black;
+  draw_profile (Profile.lookup_profile (List.nth (Group.users g') ic));
+  draw_rect ((size_x () / 2) + 325) ((size_y () / 2) - 80)
+    50 20;
+  moveto ((size_x () / 2) + 340) ((size_y ())/2 - 75);
+  draw_string "Next";
+  bd_invite_listener g p gd il c ic
+
+and bd_invite_listener g p gd il c ic =
+  let s = wait_next_event [Button_down] in
+  let coords = s.mouse_x, s.mouse_y in
+  match coords with
+  |(x,y) ->
+    if x > (size_x () - 70) && x < (size_x () - 20) && (y > (size_y () - 600)) && (y < (size_y () - 580)) then
+      (Group.gui_back g;
+       groups_screen p gd 0 0)
+    else if
+      x > (size_x () - 30) && x < (size_x () - 10) && y > (size_y () -30)
+      && y < (size_y () - 10)
+    then failwith "quitting" else
+    if y > ((size_y () / 2) - 175) && y < ((size_y () / 2) - 125) && x > ((size_x () / 2) - 50) && x < ((size_x () / 2) + 50) then
+      invite_screen p il g ((c+1) mod (List.length il)) 0 gd
+    else if y > ((size_y () / 2) - 80) && y < ((size_y () / 2) - 60) && x > ((size_x () / 2) + 325) && x < ((size_x () / 2) + 375)
+    then
+      invite_screen p il g c ((ic+1) mod (List.length (Group.users (List.nth il c)))) gd else
+    if y > ((size_y () / 2) - 175) && y < ((size_y () / 2) - 125) && x > ((size_x () / 2) -400) && x < ((size_x () / 2) -300) then
+      invite_screen p (filterer il (List.nth il c)) (gui_invites_reject g (Group.groupid (List.nth il c))) (c mod ((List.length il) -1)) 0 gd
+    else if y > ((size_y () / 2) - 175) && y < ((size_y () / 2) - 125) && x > ((size_x () / 2) +300) && x < ((size_x () / 2) +400) then
+      (Group.gui_invites_accept g (List.nth il c);
+      let group_data = pull_group_data p in
+      groups_screen p group_data 0 0)
+    else bd_invite_listener g p gd il c ic
+
+
+    (*next, next reject, accept*)
+
+
+
 
 (*prev and next for groups
   prev and next for profiles

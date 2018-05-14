@@ -116,7 +116,7 @@ let rec login_loop_gui () =
   if user_id = -1 then
     (print_string ((match fst lr with Login -> "Login" | Register -> "Register") ^
                    " unsuccessful.\n");
-     login_loop ())
+     login_loop_gui ())
   else
     ((if (fst lr) = Register then create_profile user_id else ());
      let user_profile = lookup_profile user_id in
