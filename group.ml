@@ -180,27 +180,32 @@ let rec get_second_time_for_schedule () =
     String.trim
     (if (String.contains time2_input ':')
       then String.sub time2_input 0 (String.index time2_input ':') ^
-           String.sub time2_input ((String.index time2_input ':')+1) ((String.length time2_input)-(String.index time2_input ':')-1)
+           String.sub time2_input ((String.index time2_input ':')+1)
+                      ((String.length time2_input)-(String.index time2_input ':')-1)
      else time2_input) in
   let time2 = try (int_of_string time2_trimmed)
-              with _ -> (print_endline "\nEnter the time as a number";get_second_time_for_schedule()) in
+              with _ -> (print_endline "\nEnter the time as a number";
+                         get_second_time_for_schedule()) in
   if (((time2 mod 100) >59) || ((time2/100)>23)|| time2<0)
-    then (print_endline "\nEnter a valid time between 0000 to 2359";get_second_time_for_schedule())
+    then (print_endline "\nEnter a valid time between 0000 to 2359";
+          get_second_time_for_schedule())
   else time2
 
 let day_to_string_for_repl d =
   match d with
-  |Sun -> " sunday "
-  |Mon  -> " monday "
-  |Tues -> " tuesday "
-  |Wed -> " wednesday "
-  |Thu -> " thursday "
-  |Fri -> " friday "
-  |Sat -> " saturday "
+  |Sun -> " SUNDAY "
+  |Mon  -> " MONDAY "
+  |Tues -> " TUESDAY "
+  |Wed -> " WEDNESDAY "
+  |Thu -> " THURSDAY "
+  |Fri -> " FRIDAY "
+  |Sat -> " SATURDAY "
 
 let rec get_times day acc=
   let st = day_to_string_for_repl day in
-  let done_or_not = print_read ("\nEnter \"done\" if you are done entering the times you are available on"^st^"or press \"enter\" to continue entering times: ") in
+  let done_or_not = print_read ("\nEnter \"done\" if you are done entering the times"^
+                                " you are available on"^st^"or press \"ENTER\" to "^
+                                "continue entering times: ") in
   if String.lowercase_ascii (String.trim (done_or_not)) = "done" then acc
   else
     let time1 = get_first_time_for_schedule () in
@@ -357,7 +362,8 @@ let remove_overlaps_union s1 s2 =
     |[] -> s2
     |(day,l)::t ->
       if List.mem_assoc day s2 then
-        (day,l@(List.assoc day s2))::(remove_overlaps_helper t (List.remove_assoc day s2))
+        (day,l@(List.assoc day s2))::
+          (remove_overlaps_helper t (List.remove_assoc day s2))
       else (day,l)::(remove_overlaps_helper t s2) in
   remove_overlaps (remove_overlaps_helper s1 s2)
 
@@ -367,7 +373,8 @@ let union g1 g2 =
   let size = string_of_int ((g1.size) + (g2.size)) in
   let range_min = string_of_int (max (fst (g1.range)) (fst (g2.range))) in
   let range_max = string_of_int (min (snd (g1.range)) (snd (g2.range))) in
-  let schedule = schedule_to_string (remove_overlaps_union (g1.schedule) (g2.schedule)) in
+  let schedule = schedule_to_string
+                    (remove_overlaps_union (g1.schedule) (g2.schedule)) in
   let params = [("user_id_list", users);("purpose", g1.purpose);("size",size);
                 ("range_min", range_min);("range_max", range_max);
                 ("group_blacklist","");("invited_groups_list","");
@@ -545,7 +552,8 @@ let rec schedule_sum acc o_sched g_sched =
   |[] -> acc
   |(day,times)::t ->
     if List.mem_assoc day o_sched
-      then schedule_sum (acc + (overlap_for_one_day 0 times (List.assoc day o_sched))) o_sched t
+      then schedule_sum
+              (acc + (overlap_for_one_day 0 times (List.assoc day o_sched))) o_sched t
     else schedule_sum acc o_sched t
 
 let schedule_score g other =
