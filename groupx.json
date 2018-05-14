@@ -1,0 +1,11 @@
+{"group_id" : 123442,
+"user_id_list" : [1,2,3,4,42],
+"purpose" : "cs3110",
+"size": 5,
+"range_min" : 1,
+"range_max" : 10,
+"schedule" : [],
+"group_blacklist" : [45,54],
+"invited_groups_list" : [7],
+"received_invites_list" : [90,87],
+}
