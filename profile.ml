@@ -36,7 +36,6 @@ let string_to_exp s =
   else if s = "ADV" then `ADV
   else `BEG
 
-
 (* [string_to_looking_for s] takes in a string s and convers it to list form, to
    represent the looking for category from profile.
  * requires: a string*)
@@ -241,17 +240,6 @@ let rec cp_interests () =
       then interests_tail
     else interest::interests_tail
 
-let image_to_string img =
-  let arr = Graphics.dump_image img in
-  let mapped = Array.map (fun x -> Array.to_list x) arr in
-  let l = Array.to_list (Array.map int_list_to_string mapped) in
-  match l with
-  | [] -> ""
-  | _ -> let s = List.fold_left (fun s1 s2 -> s1^"|"^s2) "" l in
-    if s = "" then ""
-    else String.sub s 1 ((String.length s)-1)
-
-
 (* [create_profile id] takes in an id. It prompts a user to enter all of the
    profile fields, and if all entries are valid, it creates a profile for that
    user which has the user_id id.
@@ -267,7 +255,6 @@ let rec create_profile id =
   let lf = cp_looking_for () in
   let github = print_read "What's your github URL? " in
   let e = print_read "What's your email? " in
-  (*let pic = ref (image_to_string (Graphics.create_image 100 100)) in*)
   let prof = {user_id = id; name = n; photo = ref ""; school = s; group_id_list = [];
               description = d; interest_list = interests;
               experience = (string_to_exp exp); role = r; looking_for = lf;
@@ -285,7 +272,6 @@ let rec create_profile id =
 
 let rec lookup_profile id =
   let jProfileString = http_get (get_prof_url ^ (string_of_int id)) in
-  let () = print_endline jProfileString in
   if jProfileString = "-1"
     then (create_profile id; lookup_profile id)
   else init_profile (from_string jProfileString)

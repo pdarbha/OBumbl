@@ -22,7 +22,7 @@ let print_read s =
   let () = print_string s in
   read_line () |> String.trim
 
-let insert_prof_url = "http://18.204.146.26/obumbl/insert_profile.php"
+let insert_prof_url = "http://18.204.146.26/obumbl/create_profile.php"
 
 let get_prof_url = "http://18.204.146.26/obumbl/get_profile.php?user_id="
 

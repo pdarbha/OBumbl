@@ -193,7 +193,7 @@ let rec welcome_screen p gd =
          draw_string ("Range: " ^ "("^string_of_int(fst(range g))^
                       ", "^string_of_int(snd(range g))^")");
          moveto ((size_x () / 2) - 350) ((size_y ())/2 + 75);
-        set_color Graphics.black
+        set_color Graphics.black;
         draw_string ("Schedule: " ^ schedule_to_string (schedule g));
         set_color Graphics.cyan;
 
