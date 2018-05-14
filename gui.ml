@@ -193,7 +193,7 @@ let rec welcome_screen p gd =
          draw_string ("Range: " ^ "("^string_of_int(fst(range g))^
                       ", "^string_of_int(snd(range g))^")");
          moveto ((size_x () / 2) - 350) ((size_y ())/2 + 75);
-        set_color Graphics.black
+        set_color Graphics.black;
         draw_string ("Schedule: " ^ schedule_to_string (schedule g));
         set_color Graphics.cyan;
 
@@ -306,7 +306,7 @@ let rec welcome_screen p gd =
     draw_string ("github: "^(p |> github));
     moveto ((size_x () / 2) -300) ((size_y ())/2 + 55);
     draw_string ("email: "^(p |> email));
-    draw_image(create_image 100 100) ((size_x () / 2) - 300) ((size_y ())/2 - 65);
+    draw_image(make_image (photo p)) ((size_x () / 2) - 300) ((size_y ())/2 - 65);
     (*description_drawer (Profile.description p) 650 ((size_x () / 2) -300) ((size_y ())/2 + 135)*)
     draw_rect (70) (size_y () - 600) 80 20;
     moveto (72) (size_y () -598);

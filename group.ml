@@ -146,7 +146,6 @@ let update_group_lists params =
   call to init_group. Otherwise, returns empty group. *)
 let lookup_group id =
   let jsonGroupString = http_get (get_group_url ^ (string_of_int id)) in
-  let () = print_endline jsonGroupString in
   if jsonGroupString = "-1" then empty_group else
   init_group (from_string jsonGroupString)
 

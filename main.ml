@@ -41,7 +41,6 @@ let login_or_register () =
 (* Pull all relevant data to user from server as json and store as record *)
 let pull_group_data p =
   let group_int_list = groups p in
-  let () = print_endline (int_list_to_string group_int_list) in
   List.map (fun id -> lookup_group id) group_int_list
 
 let perform_action_on_group g p action=
@@ -75,7 +74,8 @@ let rec repl p group_list =
       let field_value =
         (match field with
         | "name" | "school" | "description" | "experience" | "role" | "github_url"
-        | "email" -> print_read ("What would you like as your new " ^ field ^ "? ")
+        | "email" ->
+          print_read ("What would you like as your new " ^ field ^ "? ")
         | "interest_list" -> list_to_string (cp_interests ())
         | "looking_for" -> looking_for_to_string (cp_looking_for ())
         | _ -> print_string "Invalid field.\n"; "") in
@@ -107,11 +107,11 @@ let rec login_loop () =
   else
     ((if (fst lr) = Register then create_profile user_id else ());
     let user_profile = lookup_profile user_id in
-    let () = print_endline "user profile found" in
     let group_data = pull_group_data user_profile in
     repl user_profile group_data)
 
 let rec login_loop_gui () =
+  let () = Graphics.open_graph " 1x1" in
   let lr = login_or_register () in
   let user_id = int_of_string (snd lr) in
   if user_id = -1 then
@@ -122,6 +122,7 @@ let rec login_loop_gui () =
     ((if (fst lr) = Register then create_profile user_id else ());
      let user_profile = lookup_profile user_id in
      let group_data = pull_group_data user_profile in
+     Graphics.close_graph ();
      Graphics.open_graph " 1000x750";
      Graphics.set_window_title "OBumbl";
      Gui.draw_start_canvas user_profile group_data;

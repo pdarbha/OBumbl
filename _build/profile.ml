@@ -22,7 +22,7 @@ open Nethttp_client.Convenience
    photo, description, etc. Record entries are immutable, and each entry must be
    filled to complete a profile
  * requires inputs from user to match declared types *)
-type profile = {user_id:int; name:string; photo:string ref; school:string;
+type profile = {user_id:int; name:string; photo:string; school:string;
                 group_id_list: int list; description: string;
                 interest_list: string list; experience : [ `BEG | `INT | `ADV ];
                 role: string; looking_for: ([ `BEG | `INT | `ADV ]*string) list;
@@ -53,7 +53,7 @@ let string_to_looking_for s =
 let init_profile j =
   let id = j|>member "user_id"|>to_string|>int_of_string in
   let name = j|>member "name"|>to_string in
-  let photo = ref (j|>member "photo"|>to_string) in
+  let photo = j|>member "photo"|>to_string in
   let school = j|>member "school"|>to_string in
   let groups = let s = j|>member "group_list"|>to_string in
       if s = "" then [] else s|>split_string_to_list|>List.map int_of_string in
@@ -77,11 +77,6 @@ let user_id p = p.user_id
    with that profile
  * requires: a valid profile*)
 let name p = p.name
-
-(* [photo p] takes in a profile p and returns the unique will return the photo
-   of the user associated with that profile, encoded as a Base64 string
- * requires: a valid profile*)
-let photo p = !(p.photo)
 
 (* [school p] takes in a profile p and returns the school of the user associated
    with that profile
@@ -160,11 +155,12 @@ let rec looking_for_to_string lf =
  * raises failwith exception if field does not correpond to any of the record
    fields of profile  *)
 let edit p field new_val =
+  let () = print_endline (field ^ " " ^ new_val) in
   match field with
   |"user_id" -> (try let i = int_of_string new_val in {p with user_id = i}
                 with _ -> failwith "Tried to set user_id to a non integer value")
   |"name" -> {p with name = new_val}
-  |"photo" -> {p with photo = ref (new_val)}
+  |"photo" -> {p with photo = new_val}
   |"school" -> {p with school = new_val}
   |"group_id_list" when new_val = "" -> {p with group_id_list = []}
   |"group_id_list" -> (try
@@ -179,6 +175,16 @@ let edit p field new_val =
   |"github_url" -> {p with github_url = new_val}
   |"email" -> {p with email = new_val}
   | _ -> failwith "Must enter a valid field of profile to edit"
+
+let image_to_string img =
+  let arr = Graphics.dump_image img in
+  let mapped = Array.map (fun x -> Array.to_list x) arr in
+  let l = Array.to_list (Array.map int_list_to_string mapped) in
+  match l with
+  | [] -> ""
+  | _ -> let s = List.fold_left (fun s1 s2 -> s1^"|"^s2) "" l in
+    if s = "" then ""
+    else String.sub s 1 ((String.length s)-1)
 
 (* [add_group p group_id] takes in a profile p and a group id group_id. It then
    adds the new group's id to the user's group_id entry in profile and returns
@@ -201,8 +207,7 @@ let remove_group p group_id =
  * side effects: changes information related to that profile in the server *)
 let update_server p =
   let params = [("user_id", string_of_int (p.user_id));("name", (p.name));
-  ("photo", (!(p.photo)));("school", (p.school));
-  ("group_list", (int_list_to_string (p.group_id_list)));
+  ("school", (p.school));("group_list", (int_list_to_string (p.group_id_list)));
   ("description", (p.description));
   ("interest_list", list_to_string (p.interest_list));
   ("experience", exp_to_string (p.experience));("role", (p.role));
@@ -210,6 +215,29 @@ let update_server p =
   ("github_url", encode_url (p.github_url));("email", (p.email))] in
   let update = (http_post insert_prof_url params) in
   if update = "1" then true else false
+
+let update_pic_server p =
+  let params = [("user_id", string_of_int (p.user_id));("name", (p.name));
+  ("school", (p.school));("group_list", (int_list_to_string (p.group_id_list)));
+  ("description", (p.description));("photo",(p.photo));
+  ("interest_list", list_to_string (p.interest_list));
+  ("experience", exp_to_string (p.experience));("role", (p.role));
+  ("looking_for", looking_for_to_string (p.looking_for));
+  ("github_url", encode_url (p.github_url));("email", (p.email))] in
+  let update = (http_post create_prof_url params) in
+  if update = "1" then true else false
+
+(* [photo p] takes in a profile p and returns the unique will return the photo
+   of the user associated with that profile, encoded as a Base64 string
+ * requires: a valid profile*)
+let photo p =
+  let s = p.photo in
+  if s = "" then
+    Graphics.dump_image (Graphics.create_image 100 100)
+  else
+  let split1 = Array.of_list (String.split_on_char '|' s) in
+  Array.map (fun x ->
+    Array.map (int_of_string) (Array.of_list (String.split_on_char ';' x))) split1
 
 (* [cp_looking_for] looks for when the user is done entering looking for
    entries, and connects them together in list form with the role and experience
@@ -241,16 +269,6 @@ let rec cp_interests () =
       then interests_tail
     else interest::interests_tail
 
-let image_to_string img =
-  let arr = Graphics.dump_image img in
-  let mapped = Array.map (fun x -> Array.to_list x) arr in
-  let l = Array.to_list (Array.map int_list_to_string mapped) in
-  match l with
-  | [] -> ""
-  | _ -> let s = List.fold_left (fun s1 s2 -> s1^"|"^s2) "" l in
-    if s = "" then ""
-    else String.sub s 1 ((String.length s)-1)
-
 
 (* [create_profile id] takes in an id. It prompts a user to enter all of the
    profile fields, and if all entries are valid, it creates a profile for that
@@ -267,12 +285,12 @@ let rec create_profile id =
   let lf = cp_looking_for () in
   let github = print_read "What's your github URL? " in
   let e = print_read "What's your email? " in
-  (*let pic = ref (image_to_string (Graphics.create_image 100 100)) in*)
-  let prof = {user_id = id; name = n; photo = ref ""; school = s; group_id_list = [];
+  let pic = image_to_string (Graphics.create_image 100 100) in
+  let prof = {user_id = id; name = n; photo = pic; school = s; group_id_list = [];
               description = d; interest_list = interests;
               experience = (string_to_exp exp); role = r; looking_for = lf;
               github_url = github; email = e} in
-  if (update_server prof) && n <> ""
+  if (update_pic_server prof) && n <> ""
     then ()
   else
     (print_string "Invalid information, please enter your details again.\n";
@@ -285,7 +303,6 @@ let rec create_profile id =
 
 let rec lookup_profile id =
   let jProfileString = http_get (get_prof_url ^ (string_of_int id)) in
-  let () = print_endline jProfileString in
   if jProfileString = "-1"
     then (create_profile id; lookup_profile id)
   else init_profile (from_string jProfileString)

@@ -24,6 +24,9 @@ let print_read s =
 
 let insert_prof_url = "http://18.204.146.26/obumbl/insert_profile.php"
 
+let create_prof_url = "http://18.204.146.26/obumbl/create_profile.php"
+
+
 let get_prof_url = "http://18.204.146.26/obumbl/get_profile.php?user_id="
 
 let get_group_url = "http://18.204.146.26/obumbl/get_group.php?group_id="
