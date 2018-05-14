@@ -10,7 +10,8 @@ type lr_variant = Login | Register
 
 (* User either invokes login or register,
  * login: accepts username, password and looks up user id
- * register: input username, password, email, profile details (edit profile) -> push registration to server, return user id
+ * register: input username, password, email, profile details (edit profile)
+ *    -> push registration to server, return user id
  * max length of username is 16, max length of password is 256
  * returns (lr_variant, user id)
  *)
@@ -73,8 +74,8 @@ let rec repl p group_list =
                               "\"github_url\", or ): \"email\"): ") in
       let field_value =
         (match field with
-        | "name" | "school" | "description" | "experience" | "role" | "github_url" | "email" ->
-          print_read ("What would you like as your new " ^ field ^ "? ")
+        | "name" | "school" | "description" | "experience" | "role" | "github_url"
+        | "email" -> print_read ("What would you like as your new " ^ field ^ "? ")
         | "interest_list" -> list_to_string (cp_interests ())
         | "looking_for" -> looking_for_to_string (cp_looking_for ())
         | _ -> print_string "Invalid field.\n"; "") in
