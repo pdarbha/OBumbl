@@ -3,10 +3,6 @@ open Profile
 open Group
 open Helper
 
-let buttonclickinfo () =
-  let s = wait_next_event [Button_down] in
-  print_string (string_of_int s.mouse_x);
-  s.mouse_x, s.mouse_y
 (*[pull_group_data p] takes in a group p and looks up the group;s data.
   requires: a valid group*)
 let pull_group_data p =
@@ -82,10 +78,6 @@ let draw_profile (p:profile) =
   draw_string ("Top 3 Interests: "^(top3interests (interests p)));
   moveto ((size_x () / 2) + 20) ((size_y ())/2 + 120);
   draw_string ("Description: "^(description p));
-(*  draw_image(create_image 100 100) ((size_x () / 2) + 20) ((size_y ())/2)
-*)
-  (*description_drawer (Profile.description p) 355 ((size_x () / 2) + 20)
-    ((size_y ())/2 + 120)*)
 
   (*an exception type*)
 exception Oe of string
@@ -107,27 +99,19 @@ let rec welcome_screen p gd =
   draw_string "OBumbl";
   moveto (size_x ()/2 - 10) (size_y () - 45);
   draw_string ("Hello "^(name p)^"!");
-  (*draw_rect (((size_x () * 2)/5) - 300) ((size_y ())/5 + 360)
-    300 100;*)
   draw_rect ((size_x () * 2)/5 - 300) ((size_y ())/5 + 200)
     300 100;
-  (*draw_rect ((size_x () * 2)/5 - 300) (((size_y ())/5)+40)
-    300 100;*)
   draw_rect ((size_x () * 4)/5 -200) (size_y ()/2 + 100)
     300 100;
   draw_rect ((size_x () * 4)/5 -200) (((size_y ()/2) -100))
     300 100;
   set_color Graphics.blue;
-  (*moveto (((size_x () * 2)/5) - 200) ((size_y ())/5 + 410);
-    draw_string "Start Swiping";*)
   moveto (((size_x () * 2)/5) - 300) ((size_y ())/5 + 360);
   draw_string "To start swiping or to check your invite list,";
   moveto (((size_x () * 2)/5) - 300) ((size_y ())/5 + 345);
   draw_string "first select a group in the groups screen.";
   moveto (((size_x () * 2)/5) - 190) ((size_y ())/5 + 250);
   draw_string "Groups";
-  (*moveto (((size_x () * 2)/5) - 180) (((size_y ())/5)+90);
-    draw_string "Invite List";*)
   moveto ((size_x () * 4)/5 -75) (size_y ()/2 + 150);
   draw_string "New Group";
   moveto ((size_x () * 4)/5 -85) ((size_y ()/2) -50);
@@ -139,7 +123,6 @@ let rec welcome_screen p gd =
   and bd_listener_view_profile p gd =
     let s = wait_next_event [Button_down] in
     let coords = s.mouse_x, s.mouse_y in
-    (*if button_down () then*)
     match coords with
     |(x,y) ->
       if x > (size_x () - 70) && x < (size_x () - 20) &&
@@ -160,7 +143,6 @@ let rec welcome_screen p gd =
   and bd_listener_no_groups p gd swipes =
     let s = wait_next_event [Button_down] in
     let coords = s.mouse_x, s.mouse_y in
-    (*if button_down () then*)
     match coords with
     |(x,y) ->
       if x > (size_x () - 70) && x < (size_x () - 20)
@@ -184,12 +166,8 @@ let rec welcome_screen p gd =
       800 400;
     try (let g = lookup_group (List.nth (groups p) c) in
         set_color Graphics.black;
-         (*draw_rect ((size_x () / 2) - 400) ((size_y () / 2) - 175)
-           100 50;*)
          draw_rect ((size_x () / 2) + 300) ((size_y () / 2) - 175)
            100 50;
-         (*moveto ((size_x () / 2) - 370) ((size_y ())/2 - 155);
-           draw_string "Prev";*)
          moveto ((size_x () / 2) + 330) ((size_y ())/2 - 155);
          draw_string "Next"; (*fix functionality*)
          moveto ((size_x () / 2) - 50) ((size_y ())/2 + 270);
@@ -207,17 +185,10 @@ let rec welcome_screen p gd =
         set_color Graphics.black;
         draw_string ("Schedule: " ^ schedule_to_string (schedule g));
         set_color Graphics.cyan;
-
-         (*fill_rect ((size_x () / 2)) ((size_y () / 2) - 50)
-           375 310;*)
          set_color Graphics.black;
          draw_profile (lookup_profile (List.nth (users g) ic));
-         (*draw_rect ((size_x () / 2)) ((size_y () / 2) - 80)
-           50 20;*)
          draw_rect ((size_x () / 2) + 325) ((size_y () / 2) - 80)
            50 20;
-         (*moveto ((size_x () / 2) + 10) ((size_y ())/2 - 75);
-           draw_string "Prev";*)
          moveto ((size_x () / 2) + 340) ((size_y ())/2 - 75);
          draw_string "Next";
          draw_rect ((size_x () / 2) + 425) ((size_y ())/2 + 200)
@@ -227,15 +198,16 @@ let rec welcome_screen p gd =
          draw_rect ((size_x () / 2) + 425) ((size_y ())/2 + 125)
            100 50;
          moveto ((size_x () / 2) + 430) ((size_y ())/2 +130);
-         draw_string ("Invite List")(*^" ("^(string_of_int (List.length (invited_groups (List.nth gd c))))^")")*);
+         draw_string ("Invite List");
          draw_rect ((size_x () / 2) - 400) ((size_y () / 2) - 175)
            100 50;
          moveto ((size_x () / 2) - 390) ((size_y ())/2 -155);
-          draw_string ("Leave Group")(*^" ("^(string_of_int (List.length (invited_groups (List.nth gd c))))^")")*);
+          draw_string ("Leave Group");
         bd_listener_groups_screen p gd c ic)
     with Failure("nth") -> moveto ((size_x () / 2) - 350) ((size_y ())/2 + 195);
       draw_string "You have no groups to display. Go back and create a group.";
       bd_listener_no_groups p gd false
+      
 (*[bd_welcome_screen p gd] takes in a profile p and gd and looks for button
   presses in other boxes on the screen. will transfer the user to the correct
   windows accordingly. *)
@@ -247,8 +219,6 @@ let rec welcome_screen p gd =
       if x > (((size_x () * 2)/5) - 300) && x < (((size_x () * 2)/5)) &&
                   y > ((size_y ())/5 + 200) && y < ((size_y ())/5 + 300)
         then groups_screen p gd 0 0
-    (*else if y > (((size_y ())/5)+ 90) && y < (((size_y ())/5)+190) then
-      invite_screen ()*)
       else if x >  ((size_x () * 4)/5 - 200) && x < ((size_x () * 4)/5 +100) &&
               y >  (size_y ()/2 + 100) && y < (size_y ()/2 + 200)
         then new_group_screen p gd
@@ -326,8 +296,6 @@ let rec welcome_screen p gd =
     draw_string ("github: "^(p |> github));
     moveto ((size_x () / 2) -300) ((size_y ())/2 + 55);
     draw_string ("email: "^(p |> email));
-(*    draw_image(create_image 100 100) ((size_x () / 2) - 300) ((size_y ())/2 - 65);
-*)    (*description_drawer (Profile.description p) 650 ((size_x () / 2) -300) ((size_y ())/2 + 135)*)
     draw_rect (70) (size_y () - 600) 80 20;
     moveto (72) (size_y () -598);
     draw_string "Edit Profile";
@@ -419,7 +387,7 @@ let rec welcome_screen p gd =
       draw_rect ((size_x () / 2) + 325) ((size_y () / 2) - 80)
         50 20;
       moveto ((size_x () / 2) + 340) ((size_y ())/2 - 75);
-      draw_string "Next";(*implement functionality*)
+      draw_string "Next";
       bd_swipe_listener g p s gd ic
 
 (*[bd_swipe_listener g p so gd ic] listens for button presses on the swipe
@@ -487,8 +455,6 @@ let rec welcome_screen p gd =
     draw_string ("Range: " ^ "("^string_of_int(fst(range g'))^", "
                  ^string_of_int(snd(range g'))^")");
     set_color Graphics.cyan;
-    (*fill_rect ((size_x () / 2)) ((size_y () / 2) - 50)
-      375 310;*)
     set_color Graphics.black;
     draw_profile (lookup_profile (List.nth (users g') ic));
     draw_rect ((size_x () / 2) + 325) ((size_y () / 2) - 80)
@@ -533,15 +499,6 @@ let rec welcome_screen p gd =
       else bd_invite_listener g p gd il c ic
 
 
-      (*next, next reject, accept*)
-
-
-
-
-  (*prev and next for groups
-    prev and next for profiles
-    start swiping, invite list*)
-
 (*[draw_start_canvas user_prof group_data] takes in a uer profile and some
   group data, and draws a gui screen.
   requires: a valid user_id and group_data*)
@@ -549,5 +506,4 @@ let rec welcome_screen p gd =
     set_color Graphics.blue;
     welcome_screen user_prof group_data
 
-  (*      ANSITerminal.(print_endline [red] "Welcome to OBumbl");
-  *)
+ 
