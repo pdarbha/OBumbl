@@ -2,12 +2,12 @@
 "name" : "firstA lastA",
 "photo" : "this is a string",
 "school": "schoolA",
-"group_list" : [],
+"group_list" : "",
 "description" : "this is A",
-"interest_list" : "Tennis, reading, coding",
+"interest_list" : "Tennis; reading; coding",
 "experience" : "BEG",
 "role" : "manager",
 "looking_for" : "BEG manager; ADV programmer",
 "github_url" : "www.none.com",
-"email" : "none@none.com",
+"email" : "none@none.com"
 }

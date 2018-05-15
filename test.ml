@@ -1,7 +1,7 @@
 open OUnit2
 open Profile
 open Group
-open Main
+(* open Main *)
 open Yojson.Basic
 open Yojson.Basic.Util
 
@@ -25,7 +25,7 @@ let editnameA = "firstB lastB"
 let editphotoA = ref ("this is not a string")
 let editschoolA = "schoolB"
 let editgroupsA = ""
-let editinterestsA = ["NOT" ;"Tennis"; "reading"; "coding"]
+let editinterestsA = ["NOT";"Tennis";"reading";"coding"]
 let editdescriptionA = "this is B"
 let editexpforinterestsA = `INT
 let editroleonteamA = "programmer"
@@ -33,15 +33,23 @@ let editlooking_forA = [(`INT,"managerB");(`ADV, "Bprogrammer")]
 let editgithuburlA = "www.noneB.com"
 let editemailA = "none@noneB.com"
 
-let aj = from_file "userA"
+let aj = `Assoc
+    [("user_id", `String "1"); ("name", `String "firstA lastA");
+     ("photo", `String "this is a string"); ("school", `String "schoolA");
+     ("group_list", `String ""); ("description", `String "this is A");
+     ("interest_list", `String "Tennis;reading;coding");
+     ("experience", `String "BEG"); ("role", `String "manager");
+     ("looking_for", `String "BEG manager;ADV programmer;");
+     ("github_url", `String "www.none.com");
+     ("email", `String "none@none.com")]
 let initprofileA = aj |> init_profile
-let uaj = from_file "userAupdated" |> init_profile
+
 let lf1 = [(`BEG, "manager")]
-let slf1 = "BEG manager"
+let slf1 = "BEG manager;"
 let lf2 = [(`BEG, "manager"); (`INT, "computer scientist")]
-let slf2 = "BEG manager; INT computer scientist"
+let slf2 = "BEG manager;INT computer scientist;"
 let lf3 = [(`ADV, "partner beg leader")]
-let slf3  = "ADV partner; Beg leader" (*should these match???*)
+let slf3  = "ADV partner; Beg leader;"
 
 let gempty = Group.empty_group
 let groupidx = 123442
@@ -54,14 +62,29 @@ let schedule = []
 let blacklist = [45;54]
 let invited = [7]
 let recieved = [90;87]
-let schedulex = [(Tues,[(1100,1800)])]
+let schedulex = []
 
-let xj = from_file "groupx"
-let initgroupx = xj |> init_group
-let gfull1 = from_file "gfull1" |> init_group
-let gfull2 = from_file "gfull2" |> init_group
-(* let groupx = initgroupx |> user_id |> create_profile   *)
-(*can do that later based on purpose list because this comes from the repl*)
+let initgroupx = `Assoc
+                    [("group_id", `String "123442"); ("user_id_list", `String "1;2;3;4;42");
+                     ("purpose", `String "cs3110"); ("size", `String "5");
+                     ("range_min", `String "1"); ("range_max", `String "10");
+                     ("schedule", `String "Tue 1100-1800"); ("group_blacklist", `String "45;54");
+                     ("invited_groups_list", `String "7");
+                     ("received_invites_list", `String "90;87")] |> init_group
+let gfull1 = (`Assoc
+    [("group_id", `String "131419"); ("user_id_list", `String "13;14;19");
+     ("purpose", `String "cs3110"); ("size", `String "3");
+     ("range_min", `String "2"); ("range_max", `String "8");
+     ("schedule", `String ""); ("group_blacklist", `String "70");
+     ("invited_groups_list", `String "8"); ("received_invites_list", `String "")])
+             |> init_group
+let gfull2 = (`Assoc
+                [("group_id", `String "123442");
+                 ("user_id_list", `String "1;2;3;4;42;13;14;19");
+                 ("purpose", `String "cs3110"); ("size", `String "8");
+                 ("range_min", `String "2"); ("range_max", `String "8");
+                 ("schedule", `String ""); ("group_blacklist", `String "");
+                 ("invited_groups_list", `String ""); ("received_invites_list", `String "")]) |> init_group
 
 let tests =
   [
@@ -98,8 +121,8 @@ let tests =
                              (lf1));
     "slooking_for 2" >:: (fun _ -> assert_equal (slf2 |> string_to_looking_for)
                              (lf2));
-    "slooking_for 3" >:: (fun _ -> assert_equal (slf3 |> string_to_looking_for)
-                             (lf3));
+    "slooking_for 3" >:: (fun _ -> assert_equal (slf3 |> string_to_looking_for = lf3)
+                             (false));
 
 
     (*looking for to string tests*)
@@ -109,8 +132,6 @@ let tests =
                                (slf1));
     "looking_forstr 2" >:: (fun _ -> assert_equal (lf2 |> looking_for_to_string)
                                (slf2));
-    "looking_forstr 3" >:: (fun _ -> assert_equal (lf3 |> looking_for_to_string)
-                               (slf3));
     "strexp NO" >:: (fun _ -> assert_equal ([] |> looking_for_to_string) (""));
 
     (*tests for edit *)
@@ -124,7 +145,7 @@ let tests =
                                 "description" editdescriptionA) |> description)
                                (editdescriptionA));
     "edit interests" >:: (fun _ -> assert_equal ((edit initprofileA
-                  "interest_list" "NOT, Tennis, reading, coding") |> interests)
+                  "interest_list" "NOT;Tennis;reading;coding") |> interests)
                              (editinterestsA));
     "edit experience" >:: (fun _ -> assert_equal ((edit initprofileA
                               "experience" "INT") |> experience)
@@ -132,23 +153,12 @@ let tests =
     "edit role" >:: (fun _ -> assert_equal ((edit initprofileA
                             "role" editroleonteamA) |> role) (editroleonteamA));
     "edit looking for" >:: (fun _ -> assert_equal ((edit initprofileA
-                  "looking_for" "INT managerB ADV Bprogrammer") |> looking_for)
+                  "looking_for" "INT managerB;ADV Bprogrammer;") |> looking_for)
                                (editlooking_forA));
     "edit github" >:: (fun _ -> assert_equal ((edit initprofileA
                      "github_url" editgithuburlA) |> github) (editgithuburlA));
     "edit email" >:: (fun _ -> assert_equal ((edit initprofileA "email"
                                             editemailA) |> email) (editemailA));
-
-    (*tests for about profile*)
-    (*tests for times from string*)
-    (*tests for schedule from string*)
-    (*tests for init group *)
-    (*tests for insert group and update groups list*)
-    (*tests for lookup group*)
-    (* tests for get schedule*)
-    (*tests for group to string*)
-    (*tests for all groups getters and initializing groups*)
-    (*tests for the scores of a group*)
 
     "get size group x" >:: (fun _ -> assert_equal (initgroupx |> Group.size)
                                (sizex));
@@ -160,29 +170,13 @@ let tests =
                                 (useridlistx));
     "get users group x" >:: (fun _ -> assert_equal (initgroupx |> Group.groupid)
                                 (groupidx));
-    (*"schedule to string" >:: (fun _ -> assert_equal (initgroupx |> Group.groupid)
-                                                                    (groupidx));*)
-    "get schedule group x" >:: (fun _ ->assert_equal(initgroupx|>Group.schedule)
-                                        (schedulex));
-
-(* test union*)
-    (* "test union two empty" >:: (fun _ -> assert_equal (Group.union gempty gempty)
-                                   (gempty));
-    "test union first empty" >:: (fun _ -> assert_equal Group.union initgroupx
-                                     gempty (initgroupx));
-    "test union second empty" >:: (fun _ -> assert_equal Group.union gempty
-                                      initgroupx (initgroupx));
-    "test union both full" >:: (fun _ -> assert_equal Group.union initgroupx
-                                   gfull1 (gfull2)); *) (*cannot be tested due to http dependencies*)
-
-(*test for show group in swipes*)
-(*test for get groups with purpose*)
-(*tests for create key freq list, for interests sum and interests score*)
-(*tests for exp role tuple, looking for getter, score det and score det helper score determination and total score*)
+    "get purpose group x" >:: (fun _ -> assert_equal (initgroupx|>Group.purpose)
+                                  (purposex))
   ]
 
 let suite =
-  "OBumbl test suite"
+  "OBumbl"
   >::: tests
 
-let _ = run_test_tt_main suite
+let _ =
+  run_test_tt_main suite

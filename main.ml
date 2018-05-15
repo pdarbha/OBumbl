@@ -40,7 +40,6 @@ let login_or_register () =
 (* Pull all relevant data to user from server as json and store as record *)
 let pull_group_data p =
   let group_int_list = groups p in
-  let () = print_endline (int_list_to_string group_int_list) in
   List.map (fun id -> lookup_group id) group_int_list
 
 let perform_action_on_group g p action=
@@ -106,7 +105,6 @@ let rec login_loop () =
   else
     ((if (fst lr) = Register then create_profile user_id else ());
     let user_profile = lookup_profile user_id in
-    let () = print_endline "user profile found" in
     let group_data = pull_group_data user_profile in
     repl user_profile group_data)
 
@@ -135,5 +133,9 @@ let rec login_loop_gui () =
     let rec loop () = loop () in
     loop ()*)
 
-(* let () = login_loop () *)
-let () = login_loop_gui ()
+let () =
+  let actArg = Sys.argv.(1) in
+  print_endline actArg;
+  if actArg = "GUI"
+  then login_loop_gui ()
+  else login_loop ()

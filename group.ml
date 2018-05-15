@@ -132,6 +132,7 @@ let init_group j =
    range = (range_min,range_max); schedule = schedule; group_blacklist = blacklist;
    invited_groups_list = invited; received_invites_list = received}
 
+
   (* [inited_groups g] gets the invited groups list of group g
     * requires: [g] to be a valid group*)
 let invited_groups g = g.invited_groups_list
@@ -155,7 +156,6 @@ let update_group_lists params =
   call to init_group. Otherwise, returns empty group. *)
 let lookup_group id =
   let jsonGroupString = http_get (get_group_url ^ (string_of_int id)) in
-  let () = print_endline jsonGroupString in
   if jsonGroupString = "-1" then empty_group else
   init_group (from_string jsonGroupString)
 

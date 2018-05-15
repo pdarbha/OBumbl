@@ -49,29 +49,30 @@ val lookup_profile : int -> profile
  * successfully. Has the side effect of changing information in the server. *)
 val update_server : profile -> bool
 
-(* will build a profile with repl interface - side effects: uploading profile to server *)
+(* will create a profile for a user with an inputted user id*)
 val create_profile : int -> unit
 
-(* will add the id of a group to a profile's group list, if not already present *)
+(*will add a group to a user's groups list, and will update server accordingly*)
 val add_group : profile -> int -> profile
 
-(* will remove a group from profile and return profile *)
+(*will remove a group from a user's groups list, and will update server
+  accordingly*)
 val remove_group : profile -> int -> profile
 
-(* converts a looking_for list to its string representation *)
+(*will take in a looking_for list and convert it to string form*)
 val looking_for_to_string : ([ `BEG | `INT | `ADV ]*string) list -> string
 
-(* prints the details of a profile to the REPL *)
+(*will return all information about a profile to the user*)
 val about_profile : profile -> unit
 
-(* prompts user to enter interests in repl and returns those as a list *)
+(* will connect inputted interests together in list form if entries are valid*)
 val cp_interests : unit -> string list
 
-(* prompts user to enter looking for roles in repl and returns those as a list *)
+(* will connect looking for entries together in list form if entries are valid*)
 val cp_looking_for : unit -> ([ `BEG | `INT | `ADV ]*string) list
 
-(* variant representation of string *)
+(*will return an experience variant corresponding to a correct string input*)
 val string_to_exp : string -> [ `BEG | `INT | `ADV ]
 
-(* looking_for representation of string *)
+(*will return a looking for list  corresponding to a correct string input*)
 val string_to_looking_for : string -> ([ `BEG | `INT | `ADV ]*string) list

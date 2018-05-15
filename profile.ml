@@ -4,6 +4,20 @@ open Yojson.Basic.Util
 open Netencoding.Url
 open Nethttp_client.Convenience
 
+(* Limitations -- ** sanitize/escape all inputs before pushing to server **
+* Name - 64 char (full name) -- alphanumeric + spaces
+* set a reasonable image size limit (2mb?) and try to compress - upload as base 64 encoding
+* school - 64 char (alphanumeric + spaces)
+* groups - cannot join more than 100 groups -- g1;g2;g3;... for integer ids
+* description - 800 characters (alphanumeric + spaces + *basic* punctuation)
+* interests - 15 char limit per interest, 40 interests max (alphanumeric + spaces) -- i0;i1;i2;...;i39
+* experience - "BEG" or "INT" or "ADV"
+* role - 32 char (alphanumeric + spaces)
+* looking_for list - "BEG" or "INT" or "ADV" for exp, 32 for role (alphanumeric + spaces) -- exp1 role1;exp2 role2
+* Github URL - 60 char (URL encoded then decoded -- example: https://www.urlencoder.org)
+* email - 254 char limit
+*)
+
 (* [type profile] stores all information about each person including id, name,
    photo, description, etc. Record entries are immutable, and each entry must be
    filled to complete a profile
@@ -21,6 +35,8 @@ let string_to_exp s =
   if s = "INT" then `INT
   else if s = "ADV" then `ADV
   else `BEG
+
+
 
 (* [string_to_looking_for s] takes in a string s and convers it to list form, to
    represent the looking for category from profile.
