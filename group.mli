@@ -79,6 +79,9 @@ val swipe: group -> unit
   must make a new tag to create group for that purpose*)
 val leave: Profile.profile -> group -> unit
 
+(*will take a group id and will query the server to return the string of the
+  group associated with that id. will create a json of that string if the group
+  exists. if it does not, it will return the empty group. *)
 val lookup_group: int -> group
 
 val schedule_to_string: schedule -> string

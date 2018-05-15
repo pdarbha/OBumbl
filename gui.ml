@@ -87,7 +87,7 @@ let draw_profile (p:profile) =
 (*  draw_image(create_image 100 100) ((size_x () / 2) + 20) ((size_y ())/2)
 *)
   (*description_drawer (Profile.description p) 355 ((size_x () / 2) + 20)
-                        ((size_y ())/2 + 120)*)
+    ((size_y ())/2 + 120)*)
 
 exception Oe of string
 
@@ -381,7 +381,7 @@ let rec welcome_screen p gd =
       draw_rect ((size_x () / 2)) ((size_y () / 2) - 50)
         375 310;
       set_color Graphics.black;
-      draw_profile (lookup_profile (List.nth (users (List.hd s)) ic));
+      draw_profile (lookup_profile (List.nth (Group.users (List.hd s)) ic));
       draw_rect ((size_x () / 2) + 325) ((size_y () / 2) - 80)
         50 20;
       moveto ((size_x () / 2) + 340) ((size_y ())/2 - 75);

@@ -35,6 +35,7 @@ let editemailA = "none@noneB.com"
 
 let aj = from_file "userA"
 let initprofileA = aj |> init_profile
+let uaj = from_file "userAupdated" |> init_profile
 let lf1 = [(`BEG, "manager")]
 let slf1 = "BEG manager"
 let lf2 = [(`BEG, "manager"); (`INT, "computer scientist")]
@@ -53,7 +54,7 @@ let schedule = []
 let blacklist = [45;54]
 let invited = [7]
 let recieved = [90;87]
-let schedulex = []
+let schedulex = [(Tues,[(1100,1800)])]
 
 let xj = from_file "groupx"
 let initgroupx = xj |> init_group
@@ -99,6 +100,8 @@ let tests =
                              (lf2));
     "slooking_for 3" >:: (fun _ -> assert_equal (slf3 |> string_to_looking_for)
                              (lf3));
+
+
     (*looking for to string tests*)
     "looking_forstr empty" >:: (fun _ -> assert_equal([]|>looking_for_to_string)
                                    (""));
@@ -111,8 +114,6 @@ let tests =
     "strexp NO" >:: (fun _ -> assert_equal ([] |> looking_for_to_string) (""));
 
     (*tests for edit *)
-    (*"edit userid" >:: (fun _ -> assert_equal ((edit initprofileA
-                 "user_id" edituseridA) |> user_id) (edituseridA));*)
     "edit name" >:: (fun _ -> assert_equal ((edit initprofileA
                                         "name" editnameA) |> name) (editnameA));
     "edit school" >:: (fun _ -> assert_equal ((edit initprofileA "school"
@@ -131,15 +132,13 @@ let tests =
     "edit role" >:: (fun _ -> assert_equal ((edit initprofileA
                             "role" editroleonteamA) |> role) (editroleonteamA));
     "edit looking for" >:: (fun _ -> assert_equal ((edit initprofileA
-                                "looking_for" "INT managerB ADV Bprogrammer") |> looking_for)
+                  "looking_for" "INT managerB ADV Bprogrammer") |> looking_for)
                                (editlooking_forA));
     "edit github" >:: (fun _ -> assert_equal ((edit initprofileA
                      "github_url" editgithuburlA) |> github) (editgithuburlA));
     "edit email" >:: (fun _ -> assert_equal ((edit initprofileA "email"
                                             editemailA) |> email) (editemailA));
-    (*tests for add and remove group_id*)
 
-    (*tests for cp_looking for*)
     (*tests for about profile*)
     (*tests for times from string*)
     (*tests for schedule from string*)
@@ -149,26 +148,33 @@ let tests =
     (* tests for get schedule*)
     (*tests for group to string*)
     (*tests for all groups getters and initializing groups*)
-    (* "initialize group x" >:: (fun _ -> assert_equal initgroupx (xgroup)); *)
+    (*tests for the scores of a group*)
+
     "get size group x" >:: (fun _ -> assert_equal (initgroupx |> Group.size)
                                (sizex));
-    "get range group x" >:: (fun _ -> assert_equal initgroupx |> Group.range
+    "get range group x" >:: (fun _ -> assert_equal (initgroupx |> Group.range)
                                         ((rangeminx,rangemaxx)));
-    "get purpose group x" >:: (fun _ -> assert_equal initgroupx |> Group.purpose
+    "get purpose group x" >:: (fun _ -> assert_equal (initgroupx |> Group.purpose)
                                           (purposex));
-    "get users group x" >:: (fun _ -> assert_equal initgroupx |> Group.users
-                                        (useridlistx));
+    "get users group x" >:: (fun _ -> assert_equal (initgroupx |> Group.users)
+                                (useridlistx));
+    "get users group x" >:: (fun _ -> assert_equal (initgroupx |> Group.groupid)
+                                (groupidx));
+    (*"schedule to string" >:: (fun _ -> assert_equal (initgroupx |> Group.groupid)
+                                                                    (groupidx));*)
+    "get schedule group x" >:: (fun _ ->assert_equal(initgroupx|>Group.schedule)
+                                        (schedulex));
 
 (* test union*)
-    "test union two empty" >:: (fun _ -> assert_equal Group.union gempty gempty
+    (* "test union two empty" >:: (fun _ -> assert_equal (Group.union gempty gempty)
                                    (gempty));
     "test union first empty" >:: (fun _ -> assert_equal Group.union initgroupx
                                      gempty (initgroupx));
     "test union second empty" >:: (fun _ -> assert_equal Group.union gempty
                                       initgroupx (initgroupx));
     "test union both full" >:: (fun _ -> assert_equal Group.union initgroupx
-                                   gfull1 (gfull2));
-(*test update and return*)
+                                   gfull1 (gfull2)); *) (*cannot be tested due to http dependencies*)
+
 (*test for show group in swipes*)
 (*test for get groups with purpose*)
 (*tests for create key freq list, for interests sum and interests score*)
