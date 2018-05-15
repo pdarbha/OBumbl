@@ -1,0 +1,13 @@
+{"user_id" : "3",
+"name" : "first3 last3",
+"photo" : "this is a string",
+"school": "schoolA",
+"group_list" : [],
+"description" : "student",
+"interest_list" : "no interests",
+"experience" : "ADV",
+"role" : "leader",
+"looking_for" : "INT coffee runner",
+"github_url" : "www.none.com",
+"email" : "none@none.com",
+}
