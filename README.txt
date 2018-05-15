@@ -12,3 +12,8 @@ Usage: Run XQuartz. Enter the following terminal commands:
   - export DISPLAY=:0.0
   - make gui
 (Internet access required.)
+
+Make (other):
+  - make test
+  - make repl
+  - make clean
