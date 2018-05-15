@@ -16,6 +16,9 @@ val empty_group : group
 (* will return the size of a group *)
 val size : group -> int
 
+(* will return the purpose of a group *)
+val purpose : group -> string
+
 (* will return a tuple (min,max) describing the minimum and maximum acceptable
    group size *)
 val range : group -> int*int
@@ -84,10 +87,12 @@ val leave: Profile.profile -> group -> unit
   exists. if it does not, it will return the empty group. *)
 val lookup_group: int -> group
 
+(* [schedule_to_string sch s] returns the string representation of [sch] *)
 val schedule_to_string: schedule -> string
 
-val purpose : group -> string
-
+(*[create_group p] creates a group from a profile p with additional input of
+  purpose, min size, and max size of group from user.*)
 val create_group : Profile.profile -> string list -> unit
 
+(* this will return Some group [g] for [g] in group_list with matching purpose *)
 val find_group_by_code : string -> group list -> group option
