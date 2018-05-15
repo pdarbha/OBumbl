@@ -2,32 +2,24 @@ open Graphics
 open Profile
 open Group
 open Helper
-(*open Camlimages
-  open Images
-  open Elements
-  open Jpeg*)
 
-(*how to get the profile in
-  how to get the sorted groups list
-  transitions into repl
-  button listening for all buttons
-  need to log the invited list and accepted list
-  need to swipe and look at invite list based on a code
-*)
 let buttonclickinfo () =
   let s = wait_next_event [Button_down] in
   print_string (string_of_int s.mouse_x);
   s.mouse_x, s.mouse_y
-
+(*[pull_group_data p] takes in a group p and looks up the group;s data.
+  requires: a valid group*)
 let pull_group_data p =
   let group_int_list = groups p in
   List.map (fun id -> lookup_group id) group_int_list
 
+(*[quit_button ()] draws a quit button at the top right of the screen*)
 let quit_button () =
   draw_rect (size_x () - 30) (size_y () -30) 20 20;
   moveto (size_x () -22) (size_y () -25);
   draw_string "X"
 
+(*[back_button ()] draws a quit button at the bottom right of the screen*)
 let back_button () =
   draw_rect (size_x () - 70) (size_y () - 600) 50 20;
   moveto (size_x () -62) (size_y () -598);
@@ -51,6 +43,8 @@ let draw_login_register () =
   draw_string "OBUMBL";
   quit_button ()
 
+(*[s_exp p] takes in a profile and returns a string of that profile's experience
+requires: a valid profile*)
 let s_exp (p:profile) : string =
   let e = p |> experience in
   match e with
@@ -58,6 +52,8 @@ let s_exp (p:profile) : string =
   |`INT -> "INT"
   |`ADV -> "ADV"
 
+(*[top3interests lst] takes in a lst of interests and returns the first 3.
+  requires: a list *)
 let top3interests lst =
   match lst with
   |h::h2::h3::t -> h^", "^h2^", "^h3
@@ -65,6 +61,8 @@ let top3interests lst =
   |h::[] -> h
   |[] -> "none"
 
+(*draw_profile p takes in a profile and draws the profile information onto the
+  canvas. requires: a valid profile p*)
 let draw_profile (p:profile) =
   set_color (Graphics.white);
   fill_rect ((size_x () / 2)) ((size_y () / 2) - 50)
@@ -89,13 +87,18 @@ let draw_profile (p:profile) =
   (*description_drawer (Profile.description p) 355 ((size_x () / 2) + 20)
     ((size_y ())/2 + 120)*)
 
+  (*an exception type*)
 exception Oe of string
 
+(*[fileterer il g] takes in a list of elemnts il and an element g and removes g
+  from the list. requires: g to have the same type as the elements of il *)
 let rec filterer il g =
   match il with
   |[] -> []
   |h::t -> if h = g then filterer t g else h::filterer t g
 
+(*[welcome_screen p gd] draws the welcome screen first seen when entering the
+  gui. Displays options to go to the group, new group and view profie windows.*)
 let rec welcome_screen p gd =
   clear_graph ();
   quit_button ();
@@ -131,6 +134,8 @@ let rec welcome_screen p gd =
   draw_string "View Profile";
   bd_welcome_screen p gd
 
+(*[bd_listener_view_profile p gd] will look for button presses within the view
+  profile window, and will transfer the user there if they press that box*)
   and bd_listener_view_profile p gd =
     let s = wait_next_event [Button_down] in
     let coords = s.mouse_x, s.mouse_y in
@@ -149,6 +154,9 @@ let rec welcome_screen p gd =
       else
           bd_listener_view_profile p gd
 
+(*[bd_listener_no_groups p gd swipes] will look for button presses within the
+  groups box in the welcome screen. will display different windows based on
+  whether the user has groups or not *)
   and bd_listener_no_groups p gd swipes =
     let s = wait_next_event [Button_down] in
     let coords = s.mouse_x, s.mouse_y in
@@ -162,7 +170,10 @@ let rec welcome_screen p gd =
           && y < (size_y () - 10)
         then failwith "quitting" else bd_listener_no_groups p gd swipes
 
-
+(*[groups_screen p' gd' c ic] draws the groups screen in the gui, and displays
+  relevant information about those ggroups. takes in a profile p', profile gd',
+  and two ints c and ic to act as counters when scrolling through lists.
+  requires: p' to be a valid profile and gd' to be valid group data*)
   and groups_screen p' gd' c ic =
     let p = lookup_profile (user_id p') in
     let gd = pull_group_data p in
@@ -225,7 +236,9 @@ let rec welcome_screen p gd =
     with Failure("nth") -> moveto ((size_x () / 2) - 350) ((size_y ())/2 + 195);
       draw_string "You have no groups to display. Go back and create a group.";
       bd_listener_no_groups p gd false
-
+(*[bd_welcome_screen p gd] takes in a profile p and gd and looks for button
+  presses in other boxes on the screen. will transfer the user to the correct
+  windows accordingly. *)
   and bd_welcome_screen p gd =
     let s = wait_next_event [Button_down] in
     let coords = s.mouse_x, s.mouse_y in
@@ -248,6 +261,10 @@ let rec welcome_screen p gd =
         then failwith "quitting"
       else bd_welcome_screen p gd
 
+(*[bd_listener_groups_screen p gd c ic] takes in two profiles p and gd and two
+  counters c and ic, and listens for button presses to transfer the user to the
+  accompanying screens
+  requires: a valid profile p, group data gd, and two valid integers c and ic*)
   and bd_listener_groups_screen p gd c ic =
     let s = wait_next_event [Button_down] in
     let coords = s.mouse_x, s.mouse_y in
@@ -280,6 +297,9 @@ let rec welcome_screen p gd =
               groups_screen p gd 0 0)
      else bd_listener_groups_screen p gd c ic
 
+(*[view_profile_screen p gd] draws the view profile screen and displays all
+  relevant information about a profile. allows the user to go to the edit
+  profile screen as well*)
   and view_profile_screen p gd =
     clear_graph ();
     quit_button ();
@@ -313,6 +333,10 @@ let rec welcome_screen p gd =
     draw_string "Edit Profile";
     bd_listener_view_profile p gd
 
+(*[new_group_screen p gd] transfers a user to the repl to create a new group,
+  then reopens the window with the user's groups updated and displayed. takes in
+  a profile p and group gd
+  requires: a valid profile p and group data gd*)
   and new_group_screen p gd =
     close_graph ();
     let purpose_list = List.map (fun g -> purpose g) gd in
@@ -321,6 +345,10 @@ let rec welcome_screen p gd =
     Graphics.open_graph " 1000x750";
     draw_start_canvas p' (pull_group_data p')
 
+(*[edit_profile_screen p gd] takes in a profile p and group gd and transfers the
+  user to the repl to edit their profile. then reopens the window with the
+  profile information updated.
+  requires: a valid profile p and group data gd*)
   and edit_profile_screen p gd =
     close_graph ();
     let field = print_read ("Type the field you would like to edit (\"name\","^
@@ -342,10 +370,16 @@ let rec welcome_screen p gd =
       Graphics.open_graph " 1000x750";
       view_profile_screen p' (pull_group_data p')
 
+(*[swipe_screen_helper g p gd] takes in p and gd, and a list of groups g. gets
+  the sorted groups from g and returns them. requires: a valid list of groups *)
   and swipe_screen_helper g p gd =
     let sorted = Group.get_sorted_groups g
     in swipe_screen g p sorted gd 0
 
+(*[swipe_screen g p s gd ic] draws the swiping screen in the gui, allowing a
+  user to cycle throguh groups and accept or reject them.
+  requires: a valid profile p, group list g, schedule s, group data gd
+  and counter ic*)
   and swipe_screen g p s gd ic =
     clear_graph ();
     quit_button ();
@@ -388,6 +422,11 @@ let rec welcome_screen p gd =
       draw_string "Next";(*implement functionality*)
       bd_swipe_listener g p s gd ic
 
+(*[bd_swipe_listener g p so gd ic] listens for button presses on the swipe
+  screen, and updates the ser's blacklist and invite list when theuy reject or
+  accept a group.
+  requires: a valid profile p, group list p, schedule so, group data gd and
+  counter ic*)
   and bd_swipe_listener g p so gd ic =
     let s = wait_next_event [Button_down] in
     let coords = s.mouse_x, s.mouse_y in
@@ -410,6 +449,10 @@ let rec welcome_screen p gd =
         then swipe_screen (Group.invite_helper g (List.hd so)) p (List.tl so) gd ic
       else bd_swipe_listener g p so gd ic
 
+(*[invite_screen p il g c ic gd] will draw the invites screen of a user and
+  write all of the invtes that they have recieved.
+  requires: a valid profile p, list of invies il, group list g, counters c and
+  ic, and group data gd*)
   and invite_screen p il g c ic gd =
     clear_graph ();
     quit_button ();
@@ -454,6 +497,10 @@ let rec welcome_screen p gd =
     draw_string "Next";
     bd_invite_listener g p gd il c ic
 
+(*[bd_invite_listener g p il c ic] will listen for button presses on the invites
+  screen and transfer the user to the correct screens based on which box they
+  pressed in.
+  requires: a valid group g, profile p, invites list il, and counters c and ic*)
   and bd_invite_listener g p gd il c ic =
     let s = wait_next_event [Button_down] in
     let coords = s.mouse_x, s.mouse_y in
@@ -495,7 +542,9 @@ let rec welcome_screen p gd =
     prev and next for profiles
     start swiping, invite list*)
 
-
+(*[draw_start_canvas user_prof group_data] takes in a uer profile and some
+  group data, and draws a gui screen.
+  requires: a valid user_id and group_data*)
   and draw_start_canvas user_prof group_data =
     set_color Graphics.blue;
     welcome_screen user_prof group_data
