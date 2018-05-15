@@ -16,12 +16,13 @@ type day = Sun|Mon|Tues|Wed|Thu|Fri|Sat
   RI: The second integer must necessarily be greater than the first one.
 *)
 type schedule = (day*((int*int)list)) list
-
+(*[type group] holds all of the necessary information about a group*)
 type group = {group_id : int; user_id_list: int list; purpose : string; size : int;
               range : (int * int); group_blacklist : int list;
               invited_groups_list : int list; received_invites_list : int list;
               schedule: schedule}
-
+(*[empty group] is a record of a group with no meaningful information-
+  everything in this group is initialized to its most basic form*)
 let empty_group = {group_id = -1; user_id_list = []; purpose = ""; size = 0;
               range = (0,0); group_blacklist = []; invited_groups_list = [];
               received_invites_list = []; schedule = []}
@@ -131,13 +132,21 @@ let init_group j =
    range = (range_min,range_max); schedule = schedule; group_blacklist = blacklist;
    invited_groups_list = invited; received_invites_list = received}
 
+  (* [inited_groups g] gets the invited groups list of group g
+    * requires: [g] to be a valid group*)
 let invited_groups g = g.invited_groups_list
 
+(* [groupid g] gets the groupid of group g
+  * requires: [g] to be a valid group*)
 let groupid g = g.group_id
 
+(* [insert_group params] inserts a group in the server and updates accordingly
+  * requires: [params] to be a valid parameters*)
 let insert_group params =
   http_post insert_group_url params
 
+(* [update_group_lists params] updates a group's values in the server
+  * requires: [params] to be a valid parameters*)
 let update_group_lists params =
   http_post update_group_lists_url params
 
@@ -191,6 +200,9 @@ let rec get_second_time_for_schedule () =
           get_second_time_for_schedule())
   else time2
 
+(* [day_to_string_for_repl d] takes in a value d of type day and converts it to
+   its corresponding string representation
+  * requires: [d] to be a valid day*)
 let day_to_string_for_repl d =
   match d with
   |Sun -> " SUNDAY "
@@ -201,6 +213,10 @@ let day_to_string_for_repl d =
   |Fri -> " FRIDAY "
   |Sat -> " SATURDAY "
 
+(* [get_times day acc] takes in a day of type day and acc of type list. It will
+   parse out the times a user enters into the repl in order to create a schedule
+  * requires: [day] to be a valid day and [acc] to be a list, requires user
+   inputs*)
 let rec get_times day acc=
   let st = day_to_string_for_repl day in
   let done_or_not = print_read ("\nEnter \"done\" if you are done entering the times"^
@@ -214,6 +230,10 @@ let rec get_times day acc=
       then (print_endline "\nEnd time must be after start time";get_times day acc)
     else get_times day ((time1,time2)::acc)
 
+(*[create_schedule acc] will take in an acc of type list and returns a schedule
+  based on a user's inputs. requires: [acc] to be a valid list, and inputs from
+  the user into the repl
+requires: a valid accumulator*)
 let rec create_schedule acc=
   let day_input = print_read ("\nPlease enter a day of the week you are free to work on"^
                            " this project or type \"done\": ") in
@@ -239,6 +259,9 @@ let rec create_schedule acc=
       if times = [] then create_schedule acc else
       create_schedule ((day,times)::(List.remove_assoc day acc))
 
+(*[time_diff t1 t2] takes in two times t1 and t2 (as values of type int) and
+  calculates the time difference between them.
+  requires: [t1] and [t2] to be valid integers representing times in a day*)
 let time_diff t1 t2 =
   let hour_diff = (t1/100) - (t2/100) in
   let min1 = t1 mod 100 in
@@ -248,6 +271,8 @@ let time_diff t1 t2 =
     let to_next_hour = 60-min2 in
     hour_diff*60 -60 + to_next_hour + min1
 
+(*[time_overlap g_time o_time] finds an overlap between two times
+requires: two valid times as integers*)
 let time_overlap g_time o_time =
   let (b,e) = g_time in
   let (ob,oe) = o_time in
@@ -255,6 +280,8 @@ let time_overlap g_time o_time =
   if oe<e then if b>ob then time_diff oe b else time_diff oe ob
   else if b>ob then time_diff e b else time_diff e ob
 
+(*[remove_overlaps_for_a_day s] removes any time overlaps for one day
+requires: a valid list of time ranges*)
 let rec remove_overlaps_for_a_day s =
   match s with
   |(b1,e1)::(b2,e2)::t ->
@@ -263,7 +290,8 @@ let rec remove_overlaps_for_a_day s =
     else (b1,e1)::(remove_overlaps_for_a_day ((b2,e2)::t))
   | _ -> s
 
-
+(*[remove overlaps s]removes overlaps from a list of times s
+requires: a valid list of time ranges s*)
 let rec remove_overlaps s =
   match s with
   |[] -> []
@@ -367,7 +395,8 @@ let remove_overlaps_union s1 s2 =
       else (day,l)::(remove_overlaps_helper t s2) in
   remove_overlaps (remove_overlaps_helper s1 s2)
 
-(*[union g1 g2] is a new group with updated fields created by merging two groups*)
+(*[union g1 g2] is a new group with updated fields created by merging two groups
+requires: two valid groups that can be unioned*)
 let union g1 g2 =
   let users = int_list_to_string ((g1.user_id_list)@(g2.user_id_list)) in
   let size = string_of_int ((g1.size) + (g2.size)) in
@@ -409,6 +438,9 @@ let about_group g =
   print_string "\n";
   List.iter (fun p -> about_profile p) users
 
+(*[update_and_return g] takes in a group g andupdates that group's blacklist,
+recieved and invited lists, and accordingly transfers this update to the server
+requires: a valid group g*)
 let update_and_return g =
   let blacklist = int_list_to_string g.group_blacklist in
   let received = int_list_to_string g.received_invites_list in
@@ -418,6 +450,9 @@ let update_and_return g =
                 ("invited_groups_list",invited)] in
   (update_group_lists params)
 
+(*[invites_received g] takes in a group g and finds the groups that have sent it
+  invitations.
+  requires: a valid group g*)
 let rec invites_received g =
 let inviting_groups = List.map (fun id -> lookup_group id) g.received_invites_list in
 List.filter (fun g -> g.group_id <> -1) inviting_groups
@@ -478,6 +513,10 @@ let rec invites g =
         invites g)
     | _ -> print_endline "Invalid response. Try again."; invites g)
 
+(*[gui_invites_accept g og] takes in two groups g and og and merges them when
+  one has accepted the other's invite. Updates server accordingly. This is used
+  striclty in the gui to complete the group merge.
+  requires: two valid groups g and og*)
 let rec gui_invites_accept g og =
     (delete_group g;
      delete_group og;
@@ -488,6 +527,10 @@ let rec gui_invites_accept g og =
      then List.iter (fun p -> ignore (update_server (add_group p update)))
          profile_union)
 
+(*[gui_invites_reject g og] takes in two groups g and og and rejects og's offer.
+  updates g's blacklsit accordingly, This is used strictly in the gui to
+  complete the group rejection.
+  requires: two valid groups g and og*)
 let rec gui_invites_reject g ogid =
     let new_blacklist = if List.mem ogid g.group_blacklist then g.group_blacklist
       else (ogid)::(g.group_blacklist) in
@@ -496,7 +539,9 @@ let rec gui_invites_reject g ogid =
                 (List.filter (fun x -> x<>ogid) (g.received_invites_list));
             group_blacklist = new_blacklist} in
       g'
-
+(*[gui_back g] takes in a group g and is used to update the server when pressing
+  the back button in the gui.
+  requires: a valid group*)
 let rec gui_back g =
   let update = update_and_return g in
   if update = "-1" then
@@ -525,7 +570,9 @@ let get_groups_with_purpose g =
   let group_list = List.map (init_group) json_list in
   List.filter (show_group_in_swipes g) group_list
 
-
+(*[total_minutes acc sched] takes in an accumulator and a schedule sched and
+  returns the total amount of minutes in a schedule.
+  requires: a valid acc of type list and a valid schedule*)
 let rec total_minutes acc sched =
   match sched with
   |[] -> acc
@@ -536,6 +583,9 @@ let rec total_minutes acc sched =
     |(b,e)::t -> add_minutes_for_day ((time_diff e b)+acc) t in
     total_minutes (acc + (add_minutes_for_day 0 l)) t
 
+(*[overlap_for_one_day acc g_times o_times] takes in an accumulator and two
+  times, and returns how much they overlap for one day.
+  requires: a valid acc and two valid times*)
 let rec overlap_for_one_day acc g_times o_times =
   match g_times with
   |[] -> acc
@@ -547,6 +597,9 @@ let rec overlap_for_one_day acc g_times o_times =
       overlap_for_one_time ((time_overlap g_time o_time)+acc) g_time t in
     overlap_for_one_day (acc + (overlap_for_one_time 0 g_time o_times)) t o_times
 
+(*[schedule_sum acc o_sched g_sched] takes in an accumulator and two schedules,
+  and returns how much their schedules overlap.
+  requires: a valid accumulator and two valid schedules*)
 let rec schedule_sum acc o_sched g_sched =
   match g_sched with
   |[] -> acc
@@ -555,7 +608,9 @@ let rec schedule_sum acc o_sched g_sched =
       then schedule_sum
               (acc + (overlap_for_one_day 0 times (List.assoc day o_sched))) o_sched t
     else schedule_sum acc o_sched t
-
+(*[schedule score g other] takes in a group g and another group other and
+  calulcates a score based on how well their schedules overlap.
+  requires: two valid groups*)
 let schedule_score g other =
   let g_sched = g.schedule in
   let o_sched = other.schedule in
@@ -715,6 +770,9 @@ let swipe g =
       | _ -> print_endline "Not a valid command."; swipe_repl g others in
   swipe_repl g sorted
 
+(*[blakclist g ogid] takes in a group g and the id of another group, and updates
+  the server in order to add the other group to g's blaklist.
+  requires: a valid group g and a valid other group id*)
 let blacklist g ogid =
   let new_blacklist = (ogid)::(g.group_blacklist) in
   let blacklist_str = int_list_to_string new_blacklist in
@@ -727,6 +785,9 @@ let blacklist g ogid =
   ignore (update_group_lists params);
  let g' = {g with group_blacklist = new_blacklist} in g'
 
+(*[invite_helper g og] takes in two groups g and og, and updates the server in
+  order to help with sending invites to group og from group g.
+  requires: two valid groups*)
 let invite_helper g og =
   let g' = {g with invited_groups_list = (og.group_id)::g.invited_groups_list} in
   let params_h = [("group_id", string_of_int (og.group_id));
