@@ -1,6 +1,0 @@
-B _build
-PKG oUnit
-PKG yojson
-PKG ocamlnet
-PKG graphics
-PKG camlimages
